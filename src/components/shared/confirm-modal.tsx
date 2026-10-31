@@ -1,0 +1,68 @@
+"use client";
+
+import React from "react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
+
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "destructive" | "default";
+  isLoading?: boolean;
+}
+
+export function ConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  confirmText = "Delete",
+  cancelText = "Cancel",
+  variant = "destructive",
+  isLoading = false,
+}: ConfirmModalProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-md">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400">
+          <AlertTriangle className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            {title}
+          </h3>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {description}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-end gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isLoading}
+        >
+          {cancelText}
+        </Button>
+        <Button
+          type="button"
+          variant={variant}
+          onClick={onConfirm}
+          isLoading={isLoading}
+        >
+          {confirmText}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
