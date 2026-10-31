@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
+import { AvatarUploader } from "@/components/shared/avatar-uploader";
 import { useDashboard } from "@/context/dashboard-context";
 import {
   User,
@@ -121,6 +122,33 @@ export default function UserSettingsPage() {
       />
 
       <div className="p-4 sm:p-8 max-w-3xl space-y-8">
+        {/* Profile Avatar Card */}
+        <Card className="p-6 space-y-4">
+          <h3 className="font-bold text-base text-zinc-900 dark:text-white flex items-center gap-2">
+            <User className="h-4 w-4 text-emerald-500" />
+            <span>Profile Photo / Profil Rasmi</span>
+          </h3>
+          <p className="text-xs text-zinc-500">
+            Upload a profile picture directly from your phone, tablet, or desktop computer.
+          </p>
+
+          <AvatarUploader
+            currentUrl={profile?.avatarUrl}
+            onUploadSuccess={async (url) => {
+              updateProfile({ avatarUrl: url });
+              try {
+                await fetch("/api/profile", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ avatarUrl: url }),
+                });
+              } catch (e) {
+                console.error("Auto-saving avatar failed:", e);
+              }
+            }}
+          />
+        </Card>
+
         {/* Username Modification */}
         <Card className="p-6 space-y-4">
           <h3 className="font-bold text-base text-zinc-900 dark:text-white flex items-center gap-2">

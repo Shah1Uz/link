@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PhoneMockup } from "@/components/marketing/phone-mockup";
+import { AvatarUploader } from "@/components/shared/avatar-uploader";
 import { PlatformIcon } from "@/components/shared/platform-icon";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -333,32 +334,15 @@ export default function OnboardingPage() {
             </div>
 
             <Card className="p-6 space-y-6">
-              {/* Avatar Selector */}
+              {/* Avatar Selector & Direct Device Upload */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
-                  Profile Avatar
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                  Profile Avatar / Profil Rasmi
                 </label>
-                <div className="flex items-center gap-4">
-                  <img
-                    src={avatarUrl}
-                    alt="Selected Avatar"
-                    className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-500 shadow-md"
-                  />
-                  <div className="flex items-center gap-2">
-                    {avatarPresets.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setAvatarUrl(preset)}
-                        className={`h-10 w-10 rounded-full overflow-hidden border-2 transition-transform ${
-                          avatarUrl === preset ? "border-emerald-500 scale-110" : "border-transparent opacity-70 hover:opacity-100"
-                        }`}
-                      >
-                        <img src={preset} alt="" className="h-full w-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <AvatarUploader
+                  currentUrl={avatarUrl}
+                  onUploadSuccess={(url) => setAvatarUrl(url)}
+                />
               </div>
 
               {/* Display Name */}

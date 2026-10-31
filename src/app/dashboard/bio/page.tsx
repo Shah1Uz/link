@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDashboard } from "@/context/dashboard-context";
 import { Sparkles, Save, User, CheckCircle2, Layout, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { AvatarUploader } from "@/components/shared/avatar-uploader";
 
 const categories = [
   "CREATOR",
@@ -100,34 +101,18 @@ export default function BioEditPage() {
               <span>Profile Information</span>
             </h3>
 
-            {/* Avatar URL & Preview */}
+            {/* Avatar Uploader from Device */}
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                Avatar Image URL
+                Avatar Photo / Profil Rasmi
               </label>
-              <div className="flex items-center gap-4">
-                <img
-                  src={
-                    avatarUrl ||
-                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-                  }
-                  alt="Avatar Preview"
-                  className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-500 shadow-md"
-                />
-                <div className="flex-1">
-                  <Input
-                    placeholder="https://example.com/avatar.jpg"
-                    value={avatarUrl}
-                    onChange={(e) => {
-                      setAvatarUrl(e.target.value);
-                      updateProfile({ avatarUrl: e.target.value });
-                    }}
-                  />
-                  <p className="mt-1 text-[11px] text-zinc-400">
-                    Paste any image URL or host it with your preferred media service.
-                  </p>
-                </div>
-              </div>
+              <AvatarUploader
+                currentUrl={avatarUrl}
+                onUploadSuccess={(url) => {
+                  setAvatarUrl(url);
+                  updateProfile({ avatarUrl: url });
+                }}
+              />
             </div>
 
             {/* Display Name */}
