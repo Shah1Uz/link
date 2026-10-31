@@ -1,53 +1,31 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import React from "react";
+import { Moon, Sun, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/components/theme-provider";
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
-  useEffect(() => {
-    const isDark =
-      localStorage.getItem("theme") === "dark" ||
-      (!localStorage.getItem("theme") &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches);
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-      setTheme("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      setTheme("light");
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    if (theme === "light") {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setTheme("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setTheme("light");
-    }
+  const cycleTheme = () => {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
   };
 
   return (
     <Button
       variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      className={className}
+      size="sm"
+      onClick={cycleTheme}
+      className={`h-9 w-9 rounded-xl p-0 hover:bg-surface text-secondary hover:text-foreground transition-colors ${className || ""}`}
       aria-label="Toggle theme"
-      title="Toggle Light / Dark mode"
+      title={`Theme: ${theme} (Current: ${resolvedTheme})`}
     >
-      {theme === "light" ? (
-        <Moon className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
-      ) : (
-        <Sun className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
-      )}
+      {theme === "light" && <Sun className="h-4 w-4 text-amber-500 transition-all" />}
+      {theme === "dark" && <Moon className="h-4 w-4 text-indigo-400 transition-all" />}
+      {theme === "system" && <Laptop className="h-4 w-4 text-emerald-500 transition-all" />}
     </Button>
   );
 }
-

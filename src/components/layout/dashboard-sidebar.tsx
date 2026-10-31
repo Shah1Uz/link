@@ -18,6 +18,8 @@ import {
   ExternalLink,
   ShieldCheck,
   ChevronRight,
+  Users,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +35,9 @@ const navItems = [
   { href: "/dashboard/appearance", label: "Appearance", icon: Palette },
   { href: "/dashboard/templates", label: "Templates", icon: LayoutTemplate },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/qr-code", label: "QR Code", icon: QrCode },
+  { href: "/dashboard/audience", label: "Audience", icon: Users },
+  { href: "/dashboard/qr", label: "QR Code", icon: QrCode },
+  { href: "/dashboard/store", label: "Mini Store", icon: ShoppingBag },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

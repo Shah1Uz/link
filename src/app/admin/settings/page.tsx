@@ -7,21 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Save, Sparkles, Shield, AlertTriangle, Loader2 } from "lucide-react";
+import { Settings, Save, Sparkles, Shield, AlertTriangle, Loader2, ToggleLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<any>(null);
+  const [flags, setFlags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/admin/settings");
-        if (res.ok) {
-          const json = await res.json();
+        const [resSettings, resFlags] = await Promise.all([
+          fetch("/api/admin/settings"),
+          fetch("/api/admin/feature-flags"),
+        ]);
+
+        if (resSettings.ok) {
+          const json = await resSettings.json();
           setSettings(json.settings);
+        }
+        if (resFlags.ok) {
+          const jsonFlags = await resFlags.json();
+          setFlags(jsonFlags.flags || []);
         }
       } catch {
         toast.error("Failed to load platform settings");
@@ -31,6 +40,24 @@ export default function AdminSettingsPage() {
     }
     load();
   }, []);
+
+  const handleToggleFlag = async (key: string, currentVal: boolean) => {
+    try {
+      const newVal = !currentVal;
+      setFlags(flags.map((f) => (f.key === key ? { ...f, isEnabled: newVal } : f)));
+
+      const res = await fetch("/api/admin/feature-flags", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, isEnabled: newVal }),
+      });
+
+      if (!res.ok) throw new Error("Failed to toggle flag");
+      toast.success(`Feature flag '${key}' updated`);
+    } catch {
+      toast.error("Failed to update feature flag");
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +245,41 @@ export default function AdminSettingsPage() {
                   setSettings({ ...settings, announcementText: e.target.value })
                 }
               />
+            </div>
+          </Card>
+
+          {/* Feature Flags & Gradual Rollouts */}
+          <Card className="p-6 space-y-4">
+            <div>
+              <h3 className="font-bold text-base text-zinc-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-500" />
+                <span>Enterprise Feature Flags & Capabilities</span>
+              </h3>
+              <p className="text-xs text-zinc-500">
+                Instantly toggle experimental modules and premium capabilities across production.
+              </p>
+            </div>
+
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {flags.map((f) => (
+                <div key={f.key} className="py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-bold text-xs text-zinc-900 dark:text-white flex items-center gap-2">
+                      <span>{f.name}</span>
+                      <code className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-400 font-mono">
+                        {f.key}
+                      </code>
+                    </div>
+                    {f.description && (
+                      <p className="text-[11px] text-zinc-500 mt-0.5">{f.description}</p>
+                    )}
+                  </div>
+                  <Switch
+                    checked={f.isEnabled}
+                    onCheckedChange={() => handleToggleFlag(f.key, f.isEnabled)}
+                  />
+                </div>
+              ))}
             </div>
           </Card>
 

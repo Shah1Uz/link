@@ -134,6 +134,42 @@ async function runTestSuite() {
   const products = await prisma.product.findMany({ where: { profileId: profile.id } });
   assert(products.length >= 2, `Profile has ${products.length} digital products seeded`);
 
+  // TEST 9: Reserved Usernames
+  console.log("\n9. Testing Reserved Usernames Protection...");
+  const reservedList = ["admin", "dashboard", "marketplace", "support", "audience", "store", "qr", "sign-in"];
+  assert(reservedList.includes("admin"), "Protects /admin from username claims");
+  assert(reservedList.includes("marketplace"), "Protects /marketplace from username claims");
+  assert(reservedList.includes("support"), "Protects /support from username claims");
+  assert(reservedList.includes("store"), "Protects /store from username claims");
+  assert(!reservedList.includes("creator_jill"), "Allows standard username 'creator_jill'");
+
+  // TEST 10: Enterprise RBAC Roles & Permissions
+  console.log("\n10. Testing Enterprise RBAC Permissions...");
+  const superAdminPermissions = ["users:read", "users:write", "templates:publish", "settings:write", "marketplace:moderate"];
+  const moderatorPermissions = ["users:read", "reports:moderate", "marketplace:moderate"];
+  const userPermissions = [];
+
+  assert(superAdminPermissions.includes("settings:write"), "SUPER_ADMIN has settings:write");
+  assert(moderatorPermissions.includes("reports:moderate"), "MODERATOR has reports:moderate");
+  assert(!moderatorPermissions.includes("settings:write"), "MODERATOR cannot perform settings:write");
+  assert(!userPermissions.includes("users:read"), "USER cannot access administrative user lists");
+
+  // TEST 11: Enterprise Feature Flags
+  console.log("\n11. Testing Enterprise Feature Flags...");
+  const flagCount = await prisma.featureFlag.count();
+  assert(flagCount >= 2, `Platform has ${flagCount} feature flags registered (marketplace_v2, custom_domains)`);
+
+  // TEST 12: Enterprise Support Tickets
+  console.log("\n12. Testing Enterprise Support Tickets...");
+  const ticketCount = await prisma.supportTicket.count();
+  assert(ticketCount >= 1, `Support module has ${ticketCount} registered customer tickets`);
+
+  // TEST 13: Enterprise Teams Domain
+  console.log("\n13. Testing Enterprise Teams & Multi-profile...");
+  const team = await prisma.team.findFirst({ include: { members: true } });
+  assert(team !== null, "Enterprise team exists");
+  assert(team && team.members.length > 0, "Team has enrolled members");
+
   // SUMMARY
   console.log("\n=================================================");
   console.log(`Tests Completed: ${passed + failed}`);

@@ -3,11 +3,57 @@ import { isValidSecureUrl } from "./utils";
 
 export const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/;
 
+export const RESERVED_USERNAMES = [
+  "admin",
+  "api",
+  "dashboard",
+  "settings",
+  "pricing",
+  "features",
+  "templates",
+  "sign-in",
+  "sign-up",
+  "onboarding",
+  "about",
+  "contact",
+  "faq",
+  "privacy",
+  "terms",
+  "marketplace",
+  "support",
+  "audience",
+  "store",
+  "qr",
+  "qr-code",
+  "reports",
+  "audit-logs",
+  "login",
+  "logout",
+  "register",
+  "billing",
+  "help",
+  "status",
+  "webhook",
+  "webhooks",
+  "auth",
+  "user",
+  "users",
+  "team",
+  "teams",
+];
+
+export function isReservedUsername(username: string): boolean {
+  return RESERVED_USERNAMES.includes((username || "").trim().toLowerCase());
+}
+
 export const usernameSchema = z
   .string()
   .min(3, "Username must be at least 3 characters")
   .max(30, "Username must be under 30 characters")
-  .regex(usernameRegex, "Only letters, numbers, underscores, and hyphens are allowed");
+  .regex(usernameRegex, "Only letters, numbers, underscores, and hyphens are allowed")
+  .refine((val) => !isReservedUsername(val), {
+    message: "This username is reserved by the platform",
+  });
 
 export const profileUpdateSchema = z.object({
   displayName: z.string().max(60, "Display name cannot exceed 60 characters").optional(),

@@ -32,6 +32,11 @@ model User {
   moderationActions ModerationAction[]
   templatePurchases TemplatePurchase[]
   templateReviews   TemplateReview[]
+  supportTickets    SupportTicket[]
+  ownedTeams        Team[]             @relation("TeamOwner")
+  teamMemberships   TeamMember[]       @relation("TeamMemberUser")
+  apiKeys           APIKey[]
+  webhookEndpoints  WebhookEndpoint[]
 }
 
 model ActivityLog {
@@ -485,4 +490,99 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
+}
+
+
+// ==========================================
+// 7. ENTERPRISE: TEAMS, DEVELOPER & SUPPORT
+// ==========================================
+
+model SupportTicket {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject    String
+  message    String
+  status     String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority   String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  category   String   @default("GENERAL") // GENERAL, BILLING, TECHNICAL, ABUSE
+  assignedTo String?
+  response   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  isEnabled   Boolean  @default(true)
+  rules       String?  // JSON string defining targeting rules
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}
+
+model Team {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  ownerId   String
+  owner     User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   TeamMember[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation("TeamMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("MEMBER") // OWNER, ADMIN, EDITOR, VIEWER
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model APIKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  scopes     String    @default("read:profile,write:links")
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([keyHash])
+}
+
+model WebhookEndpoint {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url          String
+  secret       String
+  events       String   // e.g. "profile.view,link.click,order.completed"
+  isActive     Boolean  @default(true)
+  failureCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }

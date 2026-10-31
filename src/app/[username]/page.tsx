@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { PublicProfileView } from "@/components/profile/public-profile-view";
+import { isReservedUsername } from "@/lib/validations";
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -11,6 +12,10 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username } = await params;
   const cleanUsername = username.toLowerCase();
+
+  if (isReservedUsername(cleanUsername)) {
+    return { title: "Page Not Found — BioSpace" };
+  }
 
   const profile = await prisma.profile.findUnique({
     where: { username: cleanUsername },
@@ -45,6 +50,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PublicProfilePage({ params }: PageProps) {
   const { username } = await params;
   const cleanUsername = username.toLowerCase();
+
+  if (isReservedUsername(cleanUsername)) {
+    return notFound();
+  }
 
   const profile = await prisma.profile.findUnique({
     where: { username: cleanUsername },

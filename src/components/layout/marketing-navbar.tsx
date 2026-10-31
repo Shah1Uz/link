@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Sparkles, Menu, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 
 export function MarketingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,6 +42,7 @@ export function MarketingNavbar() {
 
         {/* Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <LanguageToggle />
           <ThemeToggle />
           <Link href="/sign-in">
             <Button variant="ghost" size="sm">
@@ -57,6 +59,7 @@ export function MarketingNavbar() {
 
         {/* Mobile Menu Button */}
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageToggle />
           <ThemeToggle />
           <Button
             variant="ghost"

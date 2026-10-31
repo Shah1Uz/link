@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { usernameRegex } from "@/lib/validations";
+import { usernameRegex, isReservedUsername } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,26 +18,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Reserved usernames
-    const reserved = [
-      "admin",
-      "api",
-      "dashboard",
-      "settings",
-      "pricing",
-      "features",
-      "templates",
-      "sign-in",
-      "sign-up",
-      "onboarding",
-      "about",
-      "contact",
-      "faq",
-      "privacy",
-      "terms",
-    ];
-
-    if (reserved.includes(username)) {
+    if (isReservedUsername(username)) {
       return NextResponse.json({ available: false, message: "This username is reserved" });
     }
 

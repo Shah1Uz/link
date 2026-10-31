@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Eye, ExternalLink, Menu, Sparkles, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { useDashboard } from "@/context/dashboard-context";
 import { SignOutButton } from "@clerk/nextjs";
 
@@ -62,6 +63,7 @@ export function DashboardHeader({
           </Button>
         </a>
 
+        <LanguageToggle />
         <ThemeToggle />
 
         {/* Avatar Profile Link */}

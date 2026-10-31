@@ -740,7 +740,66 @@ async function main() {
     },
   });
 
+  // Enterprise: Feature Flags
+  await prisma.featureFlag.upsert({
+    where: { key: "marketplace_v2" },
+    update: {},
+    create: {
+      key: "marketplace_v2",
+      name: "Community Template Marketplace",
+      description: "Allows verified creators to publish and sell custom themes on the marketplace.",
+      isEnabled: true,
+    },
+  });
+  await prisma.featureFlag.upsert({
+    where: { key: "custom_domains" },
+    update: {},
+    create: {
+      key: "custom_domains",
+      name: "Automated Custom Domain SSL Provisioning",
+      description: "Enables CNAME verification and automated Let's Encrypt certificates for PRO users.",
+      isEnabled: true,
+    },
+  });
+
+  // Enterprise: Support Ticket
+  const existingTicket = await prisma.supportTicket.findFirst({
+    where: { userId: creatorUser.id },
+  });
+  if (!existingTicket) {
+    await prisma.supportTicket.create({
+      data: {
+        userId: creatorUser.id,
+        subject: "Custom domain CNAME DNS setup assistance",
+        message: "Hello team, I have pointed links.shahuz.dev to your edge IP. Can you verify if SSL auto-issuance is queued?",
+        status: "RESOLVED",
+        priority: "HIGH",
+        category: "TECHNICAL",
+        response: "Your custom domain certificate has been verified and issued by Let's Encrypt.",
+        assignedTo: adminUser.email,
+      },
+    });
+  }
+
+  // Enterprise: Team
+  await prisma.team.upsert({
+    where: { slug: "shahuz-studios" },
+    update: {},
+    create: {
+      name: "Shahuz Creative Studios",
+      slug: "shahuz-studios",
+      ownerId: creatorUser.id,
+      members: {
+        create: {
+          userId: creatorUser.id,
+          role: "OWNER",
+        },
+      },
+    },
+  });
+
   console.log("✔ Sample profile 'shahuztech' seeded with social accounts, custom domain, products, and analytics!");
+  console.log("✔ Enterprise feature flags, support tickets, and team models successfully seeded!");
   console.log("✔ BioSpace expanded database successfully seeded.");
 }
 

@@ -3,6 +3,8 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { I18nProvider } from "@/components/i18n-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,8 +44,12 @@ export default function RootLayout({
     <ClerkProvider dynamic>
       <html lang="en" suppressHydrationWarning>
         <body className={`${inter.variable} ${plusJakarta.variable} font-sans min-h-screen bg-background text-foreground antialiased`}>
-          {children}
-          <Toaster position="top-right" richColors />
+          <ThemeProvider>
+            <I18nProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+            </I18nProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

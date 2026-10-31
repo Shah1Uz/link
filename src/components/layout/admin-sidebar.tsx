@@ -14,6 +14,8 @@ import {
   LayoutDashboard,
   ArrowLeft,
   Sparkles,
+  ShoppingBag,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +25,12 @@ const adminNav = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/users", label: "User Management", icon: Users },
   { href: "/admin/templates", label: "Templates", icon: LayoutTemplate },
-  { href: "/admin/moderation", label: "Content Moderation", icon: Flag },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
+  { href: "/admin/reports", label: "Reports & Moderation", icon: Flag },
+  { href: "/admin/marketplace", label: "Marketplace", icon: ShoppingBag },
+  { href: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
   { href: "/admin/settings", label: "Platform Settings", icon: Settings },
-  { href: "/admin/logs", label: "Audit Logs", icon: History },
+  { href: "/admin/audit-logs", label: "Audit Logs", icon: History },
 ];
 
 export function AdminSidebar() {

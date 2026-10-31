@@ -1,14 +1,16 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "./prisma";
 
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR" | "SUPPORT" | "USER";
+
 export interface AuthenticatedUser {
   id: string;
   clerkId: string;
   email: string;
   name: string | null;
   avatar: string | null;
-  role: "USER" | "ADMIN";
-  subscriptionTier: "FREE" | "PRO";
+  role: UserRole;
+  subscriptionTier: "FREE" | "PRO" | "BUSINESS";
   isSuspended: boolean;
   isBanned: boolean;
   profile?: {
@@ -35,6 +37,21 @@ export function isEmailInAdminAllowlist(email: string): boolean {
   return allowlist.includes(email.toLowerCase());
 }
 
+export function isLiveClerkKeyConfigured(): boolean {
+  const secret = process.env.CLERK_SECRET_KEY || "";
+  const pub = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
+
+  return (
+    secret.length > 25 &&
+    !secret.includes("demo_secret_key") &&
+    !secret.includes("…") &&
+    !secret.includes("...") &&
+    (secret.startsWith("sk_test_") || secret.startsWith("sk_live_")) &&
+    pub.length > 25 &&
+    !pub.includes("demo")
+  );
+}
+
 /**
  * Retrieves the currently authenticated user from Prisma database,
  * synchronizing with Clerk session or falling back to demo user if keys are unconfigured.
@@ -42,14 +59,15 @@ export function isEmailInAdminAllowlist(email: string): boolean {
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   try {
     let clerkUser = null;
-    try {
-      const { userId } = await auth();
-      if (userId) {
-        clerkUser = await currentUser();
+    if (isLiveClerkKeyConfigured()) {
+      try {
+        const { userId } = await auth();
+        if (userId) {
+          clerkUser = await currentUser();
+        }
+      } catch {
+        clerkUser = null;
       }
-    } catch {
-      // Clerk keys might not be configured or invalid in local testing
-      clerkUser = null;
     }
 
     if (clerkUser) {
@@ -106,7 +124,13 @@ export async function verifyAdminSession(): Promise<AuthenticatedUser | null> {
   const user = await getAuthenticatedUser();
   if (!user) return null;
 
-  if (user.role === "ADMIN" || isEmailInAdminAllowlist(user.email)) {
+  if (
+    user.role === "SUPER_ADMIN" ||
+    user.role === "ADMIN" ||
+    user.role === "MODERATOR" ||
+    user.role === "SUPPORT" ||
+    isEmailInAdminAllowlist(user.email)
+  ) {
     return user;
   }
 
