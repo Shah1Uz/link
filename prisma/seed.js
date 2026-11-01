@@ -619,7 +619,7 @@ async function main() {
   });
 
   const profile = await prisma.profile.upsert({
-    where: { username: "shahuztech" },
+    where: { userId: creatorUser.id },
     update: {},
     create: {
       userId: creatorUser.id,

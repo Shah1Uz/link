@@ -102,6 +102,7 @@ model Link {
   description    String?
   icon           String?
   thumbnail      String?
+  displayMode    String      @default("link") // "link" | "embed"
   isEnabled      Boolean     @default(true)
   isPinned       Boolean     @default(false)
   position       Int         @default(0)

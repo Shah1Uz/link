@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
         description: validated.description || null,
         icon: detectedIcon,
         thumbnail: validated.thumbnail || null,
+        displayMode: validated.displayMode || "link",
         collectionId: validated.collectionId || null,
         isEnabled: validated.isEnabled,
         isPinned: validated.isPinned,

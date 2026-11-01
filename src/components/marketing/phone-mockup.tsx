@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { CheckCircle2, Share2, ExternalLink, Sparkles, Wifi, Battery, Signal } from "lucide-react";
 import { PlatformIcon } from "@/components/shared/platform-icon";
+import { YouTubeEmbed } from "@/components/shared/youtube-embed";
+import { isYouTubeUrl } from "@/lib/utils";
 
 interface PhoneMockupProps {
   displayName?: string;
@@ -29,6 +31,7 @@ interface PhoneMockupProps {
     title: string;
     url: string;
     icon?: string | null;
+    displayMode?: string | null;
     isPinned?: boolean;
     clicksCount?: number;
   }>;
@@ -196,6 +199,26 @@ export function PhoneMockup({
           <div className="mt-6 flex flex-col gap-2.5 flex-1">
             {links.map((link) => {
               const isClicked = clickedLink === link.id;
+              const isYtEmbed = isYouTubeUrl(link.url) && (link.displayMode === "embed" || link.displayMode === "video");
+
+              if (isYtEmbed) {
+                return (
+                  <div key={link.id} className="text-left">
+                    <YouTubeEmbed
+                      url={link.url}
+                      title={link.title}
+                      borderRadius={theme.buttonRadius || "16px"}
+                      themeButtonColor={theme.buttonColor}
+                      themeTextColor={theme.buttonTextColor}
+                      themeAccentColor={theme.accentColor || "#ef4444"}
+                      onPlayClick={() => {
+                        if (!interactive) return;
+                        setClickedLink(link.id);
+                      }}
+                    />
+                  </div>
+                );
+              }
 
               return (
                 <div

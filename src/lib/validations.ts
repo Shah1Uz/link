@@ -97,6 +97,7 @@ export const linkSchema = z.object({
   description: z.string().max(200, "Description cannot exceed 200 characters").optional(),
   icon: z.string().optional(),
   thumbnail: z.string().optional(),
+  displayMode: z.enum(["link", "embed"]).default("link").optional(),
   collectionId: z.string().nullable().optional(),
   isEnabled: z.boolean().default(true),
   isPinned: z.boolean().default(false),

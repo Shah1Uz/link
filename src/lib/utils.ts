@@ -109,3 +109,38 @@ export function calculateCTR(clicks: number, views: number): string {
   return ((clicks / views) * 100).toFixed(1) + "%";
 }
 
+/**
+ * Extracts a YouTube Video ID from any standard watch URL, youtu.be, shorts, or embed URL
+ */
+export function extractYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+
+  // Pattern 1: youtu.be/VIDEO_ID
+  const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+
+  // Pattern 2: youtube.com/watch?v=VIDEO_ID
+  const watchMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+
+  // Pattern 3: youtube.com/shorts/VIDEO_ID
+  const shortsMatch = trimmed.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+
+  // Pattern 4: youtube.com/embed/VIDEO_ID
+  const embedMatch = trimmed.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+
+  // Pattern 5: youtube.com/live/VIDEO_ID
+  const liveMatch = trimmed.match(/\/live\/([a-zA-Z0-9_-]{11})/);
+  if (liveMatch) return liveMatch[1];
+
+  return null;
+}
+
+export function isYouTubeUrl(url: string): boolean {
+  return extractYouTubeVideoId(url) !== null;
+}
+
+

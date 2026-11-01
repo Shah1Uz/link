@@ -17,7 +17,8 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { PlatformIcon } from "@/components/shared/platform-icon";
 import { ReportModal } from "./report-modal";
-import { formatUrlForHref } from "@/lib/utils";
+import { formatUrlForHref, isYouTubeUrl } from "@/lib/utils";
+import { YouTubeEmbed } from "@/components/shared/youtube-embed";
 import { toast } from "sonner";
 
 interface PublicProfileViewProps {
@@ -225,44 +226,64 @@ export function PublicProfileView({
         {/* Links & Collections Container */}
         <div className="w-full space-y-4">
           {/* Uncollected links */}
-          {uncollectedLinks.map((link) => (
-            <div
-              key={link.id}
-              onClick={() => handleLinkClick(link.id, link.url)}
-              className="group relative flex items-center justify-between px-5 py-4 text-sm font-bold shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.015] active:scale-[0.98]"
-              style={{
-                backgroundColor: theme?.buttonColor || "#10b981",
-                color: theme?.buttonTextColor || "#042f2e",
-                borderRadius: theme?.buttonRadius || "16px",
-                border: theme?.buttonBorderColor ? `1px solid ${theme.buttonBorderColor}` : "none",
-              }}
-            >
-              <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                {link.icon && (
-                  <div className="shrink-0">
-                    <PlatformIcon platform={link.icon} size={18} />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div className="truncate">{link.title}</div>
-                  {link.description && (
-                    <div className="text-[11px] font-normal opacity-75 truncate mt-0.5">
-                      {link.description}
+          {uncollectedLinks.map((link) => {
+            const isYtEmbed = isYouTubeUrl(link.url) && (link.displayMode === "embed" || link.displayMode === "video");
+
+            if (isYtEmbed) {
+              return (
+                <YouTubeEmbed
+                  key={link.id}
+                  url={link.url}
+                  title={link.title}
+                  description={link.description}
+                  borderRadius={theme?.buttonRadius || "20px"}
+                  themeButtonColor={theme?.buttonColor}
+                  themeTextColor={theme?.buttonTextColor}
+                  themeAccentColor={theme?.accentColor || "#ef4444"}
+                  onPlayClick={() => handleLinkClick(link.id, link.url)}
+                />
+              );
+            }
+
+            return (
+              <div
+                key={link.id}
+                onClick={() => handleLinkClick(link.id, link.url)}
+                className="group relative flex items-center justify-between px-5 py-4 text-sm font-bold shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.015] active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme?.buttonColor || "#10b981",
+                  color: theme?.buttonTextColor || "#042f2e",
+                  borderRadius: theme?.buttonRadius || "16px",
+                  border: theme?.buttonBorderColor ? `1px solid ${theme.buttonBorderColor}` : "none",
+                }}
+              >
+                <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                  {link.icon && (
+                    <div className="shrink-0">
+                      <PlatformIcon platform={link.icon} size={18} />
                     </div>
                   )}
+                  <div className="min-w-0">
+                    <div className="truncate">{link.title}</div>
+                    {link.description && (
+                      <div className="text-[11px] font-normal opacity-75 truncate mt-0.5">
+                        {link.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center opacity-70 group-hover:opacity-100 transition-opacity">
+                  {link.isPinned && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/10 mr-1.5 font-bold uppercase tracking-wider">
+                      Featured
+                    </span>
+                  )}
+                  <ExternalLink className="h-4 w-4" />
                 </div>
               </div>
-
-              <div className="shrink-0 flex items-center opacity-70 group-hover:opacity-100 transition-opacity">
-                {link.isPinned && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/10 mr-1.5 font-bold uppercase tracking-wider">
-                    Featured
-                  </span>
-                )}
-                <ExternalLink className="h-4 w-4" />
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Grouped Collections */}
           {collections.map((col) => {
@@ -288,39 +309,59 @@ export function PublicProfileView({
 
                 {!isCollapsed && (
                   <div className="space-y-3 pt-1">
-                    {colLinks.map((link) => (
-                      <div
-                        key={link.id}
-                        onClick={() => handleLinkClick(link.id, link.url)}
-                        className="group relative flex items-center justify-between px-5 py-4 text-sm font-bold shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.015] active:scale-[0.98]"
-                        style={{
-                          backgroundColor: theme?.buttonColor || "#10b981",
-                          color: theme?.buttonTextColor || "#042f2e",
-                          borderRadius: theme?.buttonRadius || "16px",
-                          border: theme?.buttonBorderColor ? `1px solid ${theme.buttonBorderColor}` : "none",
-                        }}
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                          {link.icon && (
-                            <div className="shrink-0">
-                              <PlatformIcon platform={link.icon} size={18} />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="truncate">{link.title}</div>
-                            {link.description && (
-                              <div className="text-[11px] font-normal opacity-75 truncate mt-0.5">
-                                {link.description}
+                    {colLinks.map((link) => {
+                      const isYtEmbed = isYouTubeUrl(link.url) && (link.displayMode === "embed" || link.displayMode === "video");
+
+                      if (isYtEmbed) {
+                        return (
+                          <YouTubeEmbed
+                            key={link.id}
+                            url={link.url}
+                            title={link.title}
+                            description={link.description}
+                            borderRadius={theme?.buttonRadius || "20px"}
+                            themeButtonColor={theme?.buttonColor}
+                            themeTextColor={theme?.buttonTextColor}
+                            themeAccentColor={theme?.accentColor || "#ef4444"}
+                            onPlayClick={() => handleLinkClick(link.id, link.url)}
+                          />
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={link.id}
+                          onClick={() => handleLinkClick(link.id, link.url)}
+                          className="group relative flex items-center justify-between px-5 py-4 text-sm font-bold shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.015] active:scale-[0.98]"
+                          style={{
+                            backgroundColor: theme?.buttonColor || "#10b981",
+                            color: theme?.buttonTextColor || "#042f2e",
+                            borderRadius: theme?.buttonRadius || "16px",
+                            border: theme?.buttonBorderColor ? `1px solid ${theme.buttonBorderColor}` : "none",
+                          }}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                            {link.icon && (
+                              <div className="shrink-0">
+                                <PlatformIcon platform={link.icon} size={18} />
                               </div>
                             )}
+                            <div className="min-w-0">
+                              <div className="truncate">{link.title}</div>
+                              {link.description && (
+                                <div className="text-[11px] font-normal opacity-75 truncate mt-0.5">
+                                  {link.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 flex items-center opacity-70 group-hover:opacity-100 transition-opacity">
+                            <ExternalLink className="h-4 w-4" />
                           </div>
                         </div>
-
-                        <div className="shrink-0 flex items-center opacity-70 group-hover:opacity-100 transition-opacity">
-                          <ExternalLink className="h-4 w-4" />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

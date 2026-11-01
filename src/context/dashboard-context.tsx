@@ -38,6 +38,7 @@ export interface LinkItem {
   description: string | null;
   icon: string | null;
   thumbnail: string | null;
+  displayMode?: string | null;
   isEnabled: boolean;
   isPinned: boolean;
   position: number;

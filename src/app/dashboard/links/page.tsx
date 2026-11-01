@@ -12,7 +12,8 @@ import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { PlatformIcon } from "@/components/shared/platform-icon";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDashboard, LinkItem } from "@/context/dashboard-context";
-import { detectPlatformFromUrl } from "@/lib/utils";
+import { detectPlatformFromUrl, isYouTubeUrl } from "@/lib/utils";
+import { YouTubeEmbed } from "@/components/shared/youtube-embed";
 import {
   Plus,
   Pin,
@@ -26,6 +27,8 @@ import {
   MousePointerClick,
   Sparkles,
   Link2,
+  Video,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +43,7 @@ export default function LinksManagementPage() {
   const [formUrl, setFormUrl] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formIcon, setFormIcon] = useState("");
+  const [formDisplayMode, setFormDisplayMode] = useState<"link" | "embed">("link");
   const [formCollectionId, setFormCollectionId] = useState<string>("");
   const [formIsPinned, setFormIsPinned] = useState(false);
   const [formScheduledStart, setFormScheduledStart] = useState("");
@@ -50,12 +54,13 @@ export default function LinksManagementPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const openCreateModal = () => {
+  const openCreateModal = (mode: "link" | "embed" = "link") => {
     setEditingLink(null);
-    setFormTitle("");
-    setFormUrl("");
+    setFormTitle(mode === "embed" ? "Featured YouTube Video" : "");
+    setFormUrl(mode === "embed" ? "https://www.youtube.com/watch?v=dQw4w9WgXcQ" : "");
     setFormDesc("");
-    setFormIcon("");
+    setFormIcon(mode === "embed" ? "youtube" : "");
+    setFormDisplayMode(mode);
     setFormCollectionId("");
     setFormIsPinned(false);
     setFormScheduledStart("");
@@ -69,6 +74,7 @@ export default function LinksManagementPage() {
     setFormUrl(link.url);
     setFormDesc(link.description || "");
     setFormIcon(link.icon || "");
+    setFormDisplayMode((link.displayMode as "link" | "embed") || (isYouTubeUrl(link.url) ? "embed" : "link"));
     setFormCollectionId(link.collectionId || "");
     setFormIsPinned(link.isPinned);
     setFormScheduledStart(link.scheduledStart ? link.scheduledStart.slice(0, 16) : "");
@@ -78,7 +84,13 @@ export default function LinksManagementPage() {
 
   const handleUrlChange = (urlVal: string) => {
     setFormUrl(urlVal);
-    if (!formIcon) {
+    const isYt = isYouTubeUrl(urlVal);
+    if (isYt) {
+      setFormIcon("youtube");
+      if (formDisplayMode === "link" && !editingLink) {
+        setFormDisplayMode("embed");
+      }
+    } else if (!formIcon) {
       const detected = detectPlatformFromUrl(urlVal);
       setFormIcon(detected);
     }
@@ -103,6 +115,7 @@ export default function LinksManagementPage() {
             url: formUrl,
             description: formDesc || null,
             icon: formIcon || detectPlatformFromUrl(formUrl),
+            displayMode: formDisplayMode,
             collectionId: formCollectionId || null,
             isPinned: formIsPinned,
             scheduledStart: formScheduledStart ? new Date(formScheduledStart).toISOString() : null,
@@ -127,6 +140,7 @@ export default function LinksManagementPage() {
             url: formUrl,
             description: formDesc || null,
             icon: formIcon || detectPlatformFromUrl(formUrl),
+            displayMode: formDisplayMode,
             collectionId: formCollectionId || null,
             isPinned: formIsPinned,
             isEnabled: true,
@@ -187,6 +201,27 @@ export default function LinksManagementPage() {
     }
   };
 
+  const handleToggleDisplayMode = async (link: LinkItem) => {
+    const nextMode = link.displayMode === "embed" ? "link" : "embed";
+    setLinks((prev) =>
+      prev.map((l) => (l.id === link.id ? { ...l, displayMode: nextMode } : l))
+    );
+    try {
+      await fetch(`/api/links/${link.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayMode: nextMode }),
+      });
+      toast.success(
+        nextMode === "embed"
+          ? "YouTube video player ko'rinishi faollashtirildi!"
+          : "Standart havola tugmasiga o'zgartirildi."
+      );
+    } catch {
+      toast.error("Holatni o'zgartirishda xatolik");
+    }
+  };
+
   const handleMove = async (index: number, direction: "up" | "down") => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= links.length) return;
@@ -231,14 +266,25 @@ export default function LinksManagementPage() {
         title="Links & Content"
         description="Add, edit, reorder, and schedule all your public URLs."
         action={
-          <Button
-            size="sm"
-            onClick={openCreateModal}
-            className="rounded-xl gap-1.5 text-xs font-semibold"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Link</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openCreateModal("embed")}
+              className="rounded-xl gap-1.5 text-xs font-semibold border-red-500/40 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 dark:text-red-400"
+            >
+              <Video className="h-4 w-4 text-red-500" />
+              <span>+ YouTube Post</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => openCreateModal("link")}
+              className="rounded-xl gap-1.5 text-xs font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Link</span>
+            </Button>
+          </div>
         }
       />
 
@@ -249,7 +295,7 @@ export default function LinksManagementPage() {
             title="No links created yet"
             description="Start building your profile by adding your social channels, portfolio, music, or shop."
             action={
-              <Button onClick={openCreateModal} className="rounded-xl font-semibold">
+              <Button onClick={() => openCreateModal("link")} className="rounded-xl font-semibold">
                 <Plus className="h-4 w-4 mr-1.5" />
                 <span>Add Your First Link</span>
               </Button>
@@ -334,6 +380,23 @@ export default function LinksManagementPage() {
 
                     {/* Right: Actions, Pin, Toggle */}
                     <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end border-t sm:border-0 pt-2 sm:pt-0">
+                      {/* YouTube Post Embed Toggle */}
+                      {isYouTubeUrl(link.url) && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDisplayMode(link)}
+                          className={`text-[10px] px-2 py-1 rounded-xl font-bold border flex items-center gap-1.5 transition-colors shadow-xs ${
+                            link.displayMode === "embed"
+                              ? "bg-red-500/10 text-red-600 border-red-500/40 hover:bg-red-500/20 dark:text-red-400"
+                              : "bg-surface text-text-secondary border-border hover:text-foreground"
+                          }`}
+                          title="Video ko'rinishini almashtirish (pleer yoki tugma)"
+                        >
+                          <Video className="h-3.5 w-3.5 text-red-500" />
+                          <span>{link.displayMode === "embed" ? "Video Embed" : "Link Button"}</span>
+                        </button>
+                      )}
+
                       {/* Pin Button */}
                       <Button
                         variant="ghost"
@@ -397,11 +460,55 @@ export default function LinksManagementPage() {
             </label>
             <Input
               required
-              placeholder="https://youtube.com/@channel or https://yoursite.com"
+              placeholder="https://youtube.com/watch?v=... or https://yoursite.com"
               value={formUrl}
               onChange={(e) => handleUrlChange(e.target.value)}
             />
           </div>
+
+          {/* YouTube Video Post Embed Configurator */}
+          {isYouTubeUrl(formUrl) && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 space-y-3 dark:bg-red-950/20 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-600 text-white shadow-xs">
+                    <Video className="h-3.5 w-3.5" />
+                  </span>
+                  <div>
+                    <h5 className="font-bold text-xs text-zinc-900 dark:text-white">
+                      YouTube Video Post
+                    </h5>
+                    <p className="text-[11px] text-zinc-500">
+                      Show video player with border-radius directly on profile
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    {formDisplayMode === "embed" ? "Player Embed" : "Link Button"}
+                  </span>
+                  <Switch
+                    checked={formDisplayMode === "embed"}
+                    onCheckedChange={(val) => setFormDisplayMode(val ? "embed" : "link")}
+                  />
+                </div>
+              </div>
+
+              {formDisplayMode === "embed" && (
+                <div className="pt-1">
+                  <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-2">
+                    ✓ Border-radiusli chiroyli video pleer ko&apos;rinishi:
+                  </p>
+                  <YouTubeEmbed
+                    url={formUrl}
+                    title={formTitle || "YouTube Video Preview"}
+                    description={formDesc}
+                    borderRadius="16px"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
