@@ -69,36 +69,54 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     }
   }, [resolvedAudioUrl, theme?.spotifyTrackTitle, theme?.spotifyTrackArtist]);
 
+  const hashMatch = resolvedAudioUrl?.match(/[#?]t=([0-9.]+)(?:,([0-9.]+))?/);
+  const trimStart = hashMatch ? parseFloat(hashMatch[1]) : 0;
+  const trimEnd = hashMatch && hashMatch[2] ? parseFloat(hashMatch[2]) : null;
+  const rawAudioUrl = resolvedAudioUrl ? resolvedAudioUrl.split("#")[0] : null;
+
   // Audio event listeners
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    const handleLoadedMetadata = () => {
+      if (trimStart > 0) {
+        audio.currentTime = trimStart;
+      }
+    };
+
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
+      if (trimEnd && audio.currentTime >= trimEnd) {
+        audio.pause();
+        audio.currentTime = trimStart;
+        setIsPlaying(false);
+      }
       if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
+        setDuration(trimEnd ? trimEnd - trimStart : audio.duration);
       }
     };
     const handleEnded = () => {
       setIsPlaying(false);
-      setCurrentTime(0);
+      setCurrentTime(trimStart);
     };
     const handlePause = () => setIsPlaying(false);
     const handlePlay = () => setIsPlaying(true);
 
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("play", handlePlay);
 
     return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("play", handlePlay);
     };
-  }, [mounted, resolvedAudioUrl]);
+  }, [mounted, resolvedAudioUrl, trimStart, trimEnd]);
 
   if (!mounted) return null;
 
@@ -127,6 +145,9 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     if (isPlaying) {
       audio.pause();
     } else {
+      if (trimStart > 0 && (audio.currentTime < trimStart || (trimEnd && audio.currentTime >= trimEnd))) {
+        audio.currentTime = trimStart;
+      }
       audio.play().catch((err) => {
         console.warn("Audio playback interrupted:", err);
       });
@@ -163,10 +184,10 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
   if (isCardLayout) {
     return (
       <div className="w-full my-4 overflow-hidden rounded-2xl border border-white/15 bg-zinc-950/90 p-4 text-white shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-emerald-500/40 font-sans">
-        {resolvedAudioUrl && (
+        {rawAudioUrl && (
           <audio
             ref={audioRef}
-            src={resolvedAudioUrl}
+            src={rawAudioUrl}
             preload="auto"
             muted={isMuted}
           />
@@ -320,10 +341,10 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
         isExpanded ? "w-[340px]" : "w-auto"
       )}
     >
-      {resolvedAudioUrl && (
+      {rawAudioUrl && (
         <audio
           ref={audioRef}
-          src={resolvedAudioUrl}
+          src={rawAudioUrl}
           preload="auto"
           muted={isMuted}
         />
