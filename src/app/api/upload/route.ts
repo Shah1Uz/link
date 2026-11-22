@@ -66,33 +66,38 @@ export async function POST(req: NextRequest) {
       : "jpg";
     const filename = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${sanitizedExt}`;
 
+    const isImage = file.type.startsWith("image/");
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
+
+    let publicUrl = `/uploads/${filename}`;
     try {
       const uploadDir = path.join(process.cwd(), "public", "uploads");
       await mkdir(uploadDir, { recursive: true });
       const filePath = path.join(uploadDir, filename);
       await writeFile(filePath, buffer);
 
-      const publicUrl = `/uploads/${filename}`;
-
-      return NextResponse.json({
-        success: true,
-        url: publicUrl,
-        filename,
-        size: file.size,
-      });
+      // Also mirror to /tmp/uploads for container environments
+      try {
+        const tmpDir = path.join("/tmp", "uploads");
+        await mkdir(tmpDir, { recursive: true });
+        await writeFile(path.join(tmpDir, filename), buffer);
+      } catch {}
     } catch (fsError) {
-      // Graceful fallback to Data URL if local filesystem write is restricted
-      console.warn("Filesystem write fallback to base64 Data URL:", fsError);
-      const base64 = buffer.toString("base64");
-      const dataUrl = `data:${file.type};base64,${base64}`;
-
-      return NextResponse.json({
-        success: true,
-        url: dataUrl,
-        filename,
-        size: file.size,
-      });
+      console.warn("Local filesystem write restricted:", fsError);
     }
+
+    // For images <= 6MB, use Data URL so image persists in PostgreSQL permanently
+    // across container reboots, redeploys, and ephemeral hosting.
+    const finalUrl = isImage && file.size <= 6 * 1024 * 1024 ? dataUrl : publicUrl;
+
+    return NextResponse.json({
+      success: true,
+      url: finalUrl,
+      publicUrl,
+      filename,
+      size: file.size,
+    });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
