@@ -10,72 +10,60 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden: Admin support permission required" }, { status: 403 });
     }
 
-    let tickets = await prisma.supportTicket.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            subscriptionTier: true,
+    const [tickets, inquiries] = await Promise.all([
+      prisma.supportTicket.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              subscriptionTier: true,
+            },
           },
         },
-      },
-    });
-
-    // If no tickets exist, seed a few realistic starter tickets so the support panel is immediately operational
-    if (tickets.length === 0) {
-      const demoUser = await prisma.user.findFirst();
-      if (demoUser) {
-        await prisma.supportTicket.createMany({
-          data: [
-            {
-              userId: demoUser.id,
-              subject: "Custom domain DNS CNAME configuration inquiry",
-              message: "I pointed my custom domain biospace.myportfolio.com to your CNAME record, but the SSL certificate still shows Pending after 30 minutes. Could you verify if the DNS record propagated properly?",
-              status: "OPEN",
-              priority: "HIGH",
-              category: "TECHNICAL",
-            },
-            {
-              userId: demoUser.id,
-              subject: "Invoice for annual PRO subscription receipt",
-              message: "Hello team, can you please issue an official VAT invoice for our recent annual PRO upgrade? Our company tax ID is US-9482910.",
-              status: "IN_PROGRESS",
-              priority: "MEDIUM",
-              category: "BILLING",
-              response: "We have generated your formal tax invoice and sent it to your registered account email.",
-            },
-            {
-              userId: demoUser.id,
-              subject: "Feature request: TikTok direct pixel integration",
-              message: "Would love to see TikTok tracking pixel integration alongside the Meta pixel in the analytics settings tab.",
-              status: "RESOLVED",
-              priority: "LOW",
-              category: "GENERAL",
-              response: "Thank you for the suggestion! TikTok Pixel integration has been added to our Q2 product roadmap.",
-            },
-          ],
-        });
-
-        tickets = await prisma.supportTicket.findMany({
-          orderBy: { createdAt: "desc" },
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-                subscriptionTier: true,
-              },
+      }),
+      prisma.contactInquiry.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              subscriptionTier: true,
             },
           },
-        });
-      }
-    }
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ tickets });
+    const inquiryTickets = inquiries.map((inquiry) => ({
+      id: inquiry.id,
+      subject: inquiry.subject,
+      message: inquiry.message,
+      status: inquiry.status,
+      priority: "MEDIUM",
+      category: inquiry.category,
+      response: inquiry.response,
+      assignedTo: null,
+      createdAt: inquiry.createdAt,
+      source: "inquiry" as const,
+      user: inquiry.user || {
+        id: "guest",
+        email: inquiry.email,
+        name: inquiry.name,
+        subscriptionTier: "FREE",
+      },
+    }));
+
+    const merged = [
+      ...tickets.map((ticket) => ({ ...ticket, source: "ticket" as const })),
+      ...inquiryTickets,
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return NextResponse.json({ tickets: merged });
   } catch (error) {
     console.error("Admin support GET error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -90,10 +78,36 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { ticketId, status, response, priority } = body;
+    const { ticketId, status, response, priority, source } = body;
 
     if (!ticketId) {
       return NextResponse.json({ error: "Ticket ID is required" }, { status: 400 });
+    }
+
+    const allowedStatus = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+    if (status && !allowedStatus.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    if (source === "inquiry") {
+      const updated = await prisma.contactInquiry.update({
+        where: { id: ticketId },
+        data: {
+          ...(status ? { status } : {}),
+          ...(response !== undefined ? { response: response || null } : {}),
+        },
+      });
+
+      await logAdminAction({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "UPDATE_CONTACT_INQUIRY",
+        targetResource: "CONTACT_INQUIRY",
+        targetId: ticketId,
+        details: { status, responseGiven: !!response },
+      });
+
+      return NextResponse.json({ ticket: updated });
     }
 
     const updated = await prisma.supportTicket.update({

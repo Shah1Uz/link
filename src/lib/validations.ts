@@ -56,11 +56,11 @@ export const usernameSchema = z
   });
 
 export const profileUpdateSchema = z.object({
-  displayName: z.string().max(60, "Display name cannot exceed 60 characters").optional(),
+  displayName: z.string().max(60, "Display name cannot exceed 60 characters").nullable().optional(),
   username: usernameSchema.optional(),
-  bio: z.string().max(250, "Bio cannot exceed 250 characters").optional(),
-  avatarUrl: z.string().optional(),
-  bannerUrl: z.string().optional(),
+  bio: z.string().max(250, "Bio cannot exceed 250 characters").nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  bannerUrl: z.string().nullable().optional(),
   category: z.enum([
     "CREATOR",
     "INFLUENCER",
@@ -84,6 +84,21 @@ export const profileUpdateSchema = z.object({
     "creator",
   ]).optional(),
   isPublished: z.boolean().optional(),
+  verified: z.boolean().optional(),
+  storeEnabled: z.boolean().optional(),
+});
+
+export const contactInquirySchema = z.object({
+  name: z.string().trim().min(2, "Name is too short").max(80),
+  email: z.string().trim().email("Enter a valid email"),
+  subject: z.string().trim().min(3, "Subject is too short").max(140),
+  message: z.string().trim().min(10, "Message should be at least 10 characters").max(4000),
+});
+
+export const notificationPrefsSchema = z.object({
+  notifyClickMilestones: z.boolean().optional(),
+  notifyWeeklyDigest: z.boolean().optional(),
+  notifyProductNews: z.boolean().optional(),
 });
 
 export const linkSchema = z.object({
@@ -94,10 +109,10 @@ export const linkSchema = z.object({
     .refine((val) => isValidSecureUrl(val), {
       message: "Please enter a valid, safe URL (http, https, mailto, or tel)",
     }),
-  description: z.string().max(200, "Description cannot exceed 200 characters").optional(),
-  icon: z.string().optional(),
-  thumbnail: z.string().optional(),
-  displayMode: z.enum(["link", "embed"]).default("link").optional(),
+  description: z.string().max(200, "Description cannot exceed 200 characters").nullable().optional(),
+  icon: z.string().nullable().optional(),
+  thumbnail: z.string().nullable().optional(),
+  displayMode: z.enum(["link", "embed"]).default("link").nullable().optional(),
   collectionId: z.string().nullable().optional(),
   isEnabled: z.boolean().default(true),
   isPinned: z.boolean().default(false),
@@ -108,16 +123,17 @@ export const linkSchema = z.object({
 
 export const collectionSchema = z.object({
   title: z.string().min(1, "Collection title is required").max(60, "Title cannot exceed 60 characters"),
-  description: z.string().max(160, "Description cannot exceed 160 characters").optional(),
+  description: z.string().max(160, "Description cannot exceed 160 characters").nullable().optional(),
   position: z.number().int().default(0),
   isCollapsed: z.boolean().default(false),
 });
 
 export const themeSchema = z.object({
   backgroundColor: z.string().default("#0f172a"),
-  backgroundType: z.enum(["color", "gradient", "image", "pattern"]).default("color"),
+  backgroundType: z.enum(["color", "gradient", "image", "pattern", "video", "blur"]).default("color"),
   backgroundGradient: z.string().nullable().optional(),
   backgroundImage: z.string().nullable().optional(),
+  backgroundVideo: z.string().nullable().optional(),
   buttonStyle: z.enum(["rounded", "square", "pill", "outlined", "filled", "shadow", "glass", "neon"]).default("rounded"),
   buttonColor: z.string().default("#ffffff"),
   buttonTextColor: z.string().default("#0f172a"),
@@ -129,13 +145,41 @@ export const themeSchema = z.object({
   accentColor: z.string().default("#22c55e"),
   animationsEnabled: z.boolean().default(true),
   showBranding: z.boolean().default(true),
+  spotifyMusicEnabled: z.boolean().default(false).optional(),
+  spotifyTrackUrl: z.string().nullable().optional(),
+  spotifyTrackTitle: z.string().nullable().optional(),
+  spotifyTrackArtist: z.string().nullable().optional(),
+  spotifyTrackImage: z.string().nullable().optional(),
+  spotifyTrackPreview: z.string().nullable().optional(),
+  spotifyMusicLayout: z.enum(["floating", "card"]).default("floating").optional(),
+  spotifyMusicAutoplay: z.boolean().default(false).optional(),
+  heroBlur: z.string().nullable().optional(),
+  heroFade: z.string().nullable().optional(),
+  heroDarken: z.string().nullable().optional(),
+  stickersEnabled: z.boolean().default(false).optional(),
+  stickerId: z.string().nullable().optional(),
+  stickerUrl: z.string().nullable().optional(),
+  stickerText: z.string().nullable().optional(),
+  stickerPosition: z.string().default("top-right").optional(),
+  stickerAnimation: z.string().default("float").optional(),
+  stickerSize: z.string().default("medium").optional(),
+  stickerRotation: z.string().default("-6deg").optional(),
+  stickerLink: z.string().nullable().optional(),
+  stickerPosX: z.number().nullable().optional(),
+  stickerPosY: z.number().nullable().optional(),
+  wallpaperEffect: z.string().nullable().optional(),
+  wallpaperTint: z.number().nullable().optional(),
+  wallpaperNoise: z.boolean().nullable().optional(),
+  gradientStyle: z.string().nullable().optional(),
+  gradientColor: z.string().nullable().optional(),
+  gradientDirection: z.string().nullable().optional(),
 });
 
 export const reportSchema = z.object({
-  profileId: z.string().optional(),
-  linkId: z.string().optional(),
+  profileId: z.string().nullable().optional(),
+  linkId: z.string().nullable().optional(),
   reporterEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   reason: z.string().min(3, "Reason is required"),
-  details: z.string().max(500, "Details cannot exceed 500 characters").optional(),
+  details: z.string().max(500, "Details cannot exceed 500 characters").nullable().optional(),
 });
 

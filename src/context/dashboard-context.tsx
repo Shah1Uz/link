@@ -8,16 +8,29 @@ export interface ProfileData {
   displayName: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  bannerUrl?: string | null;
   category: string;
   verified: boolean;
   isPublished: boolean;
   layout: string;
+  customCss?: string | null;
+  newsletterEnabled?: boolean;
+  newsletterTitle?: string;
+  newsletterDescription?: string | null;
+  newsletterButtonText?: string;
+  bookingEnabled?: boolean;
+  bookingTitle?: string;
+  bookingDescription?: string | null;
+  bookingTimezone?: string;
+  storeEnabled?: boolean;
 }
 
 export interface ThemeData {
   backgroundColor: string;
   backgroundType: string;
   backgroundGradient: string | null;
+  backgroundImage?: string | null;
+  backgroundVideo?: string | null;
   buttonStyle: string;
   buttonColor: string;
   buttonTextColor: string;
@@ -29,6 +42,34 @@ export interface ThemeData {
   accentColor: string;
   animationsEnabled: boolean;
   showBranding: boolean;
+  spotifyMusicEnabled?: boolean;
+  spotifyTrackUrl?: string | null;
+  spotifyTrackTitle?: string | null;
+  spotifyTrackArtist?: string | null;
+  spotifyTrackImage?: string | null;
+  spotifyTrackPreview?: string | null;
+  spotifyMusicLayout?: "floating" | "card" | string;
+  spotifyMusicAutoplay?: boolean;
+  heroBlur?: string | null;
+  heroFade?: string | null;
+  heroDarken?: string | null;
+  stickersEnabled?: boolean;
+  stickerId?: string | null;
+  stickerUrl?: string | null;
+  stickerText?: string | null;
+  stickerPosition?: string | null;
+  stickerAnimation?: string | null;
+  stickerSize?: string | null;
+  stickerRotation?: string | null;
+  stickerLink?: string | null;
+  stickerPosX?: number | null;
+  stickerPosY?: number | null;
+  wallpaperEffect?: string | null;
+  wallpaperTint?: number | null;
+  wallpaperNoise?: boolean | null;
+  gradientStyle?: string | null;
+  gradientColor?: string | null;
+  gradientDirection?: string | null;
 }
 
 export interface LinkItem {
@@ -62,6 +103,9 @@ interface DashboardContextType {
   links: LinkItem[];
   collections: CollectionItem[];
   subscriptionTier: "FREE" | "PRO";
+  isAdmin?: boolean;
+  userEmail?: string;
+  userRole?: string;
   isMobilePreviewOpen: boolean;
   setIsMobilePreviewOpen: (open: boolean) => void;
   updateProfile: (data: Partial<ProfileData>) => void;
@@ -69,9 +113,28 @@ interface DashboardContextType {
   setLinks: React.Dispatch<React.SetStateAction<LinkItem[]>>;
   setCollections: React.Dispatch<React.SetStateAction<CollectionItem[]>>;
   refreshData: () => Promise<void>;
+  refreshDashboardData?: () => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+
+export function broadcastRealtimeUpdate(payload: any) {
+  if (typeof window === "undefined") return;
+  try {
+    if ("BroadcastChannel" in window) {
+      const bc = new BroadcastChannel("biospace_realtime_sync");
+      bc.postMessage(payload);
+      bc.close();
+    }
+  } catch {}
+
+  try {
+    localStorage.setItem(
+      "biospace_realtime_event",
+      JSON.stringify({ ...payload, timestamp: Date.now() })
+    );
+  } catch {}
+}
 
 export function DashboardProvider({
   children,
@@ -80,6 +143,9 @@ export function DashboardProvider({
   initialLinks,
   initialCollections,
   initialTier = "FREE",
+  isAdmin = false,
+  userEmail,
+  userRole,
 }: {
   children: React.ReactNode;
   initialProfile: ProfileData | null;
@@ -87,6 +153,9 @@ export function DashboardProvider({
   initialLinks: LinkItem[];
   initialCollections: CollectionItem[];
   initialTier?: "FREE" | "PRO";
+  isAdmin?: boolean;
+  userEmail?: string;
+  userRole?: string;
 }) {
   const [profile, setProfile] = useState<ProfileData | null>(initialProfile);
   const [theme, setTheme] = useState<ThemeData | null>(initialTheme);
@@ -94,14 +163,36 @@ export function DashboardProvider({
   const [collections, setCollections] = useState<CollectionItem[]>(initialCollections);
   const [subscriptionTier] = useState<"FREE" | "PRO">(initialTier);
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
+  const [isAdminUser] = useState<boolean>(Boolean(isAdmin));
+  const [userEmailVal] = useState<string | undefined>(userEmail);
+  const [userRoleVal] = useState<string | undefined>(userRole);
 
   const updateProfile = (data: Partial<ProfileData>) => {
-    setProfile((prev) => (prev ? { ...prev, ...data } : null));
+    setProfile((prev) => {
+      const next = prev ? { ...prev, ...data } : (data as ProfileData);
+      if (next) {
+        broadcastRealtimeUpdate({ type: "PROFILE_UPDATED", profile: next });
+      }
+      return next;
+    });
   };
 
   const updateTheme = (data: Partial<ThemeData>) => {
-    setTheme((prev) => (prev ? { ...prev, ...data } : null));
+    setTheme((prev) => {
+      const next = prev ? { ...prev, ...data } : (data as ThemeData);
+      if (next) {
+        broadcastRealtimeUpdate({ type: "THEME_UPDATED", theme: next });
+      }
+      return next;
+    });
   };
+
+  // Broadcast when links update in state
+  useEffect(() => {
+    if (typeof window !== "undefined" && links) {
+      broadcastRealtimeUpdate({ type: "LINKS_UPDATED", links });
+    }
+  }, [links]);
 
   const refreshData = async () => {
     try {
@@ -126,6 +217,9 @@ export function DashboardProvider({
         links,
         collections,
         subscriptionTier,
+        isAdmin: isAdminUser,
+        userEmail: userEmailVal,
+        userRole: userRoleVal,
         isMobilePreviewOpen,
         setIsMobilePreviewOpen,
         updateProfile,
@@ -133,6 +227,7 @@ export function DashboardProvider({
         setLinks,
         setCollections,
         refreshData,
+        refreshDashboardData: refreshData,
       }}
     >
       {children}

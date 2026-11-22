@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { usernameRegex, isReservedUsername } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
@@ -27,6 +28,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (existing) {
+      const user = await getAuthenticatedUser();
+      if (user && existing.userId === user.id) {
+        return NextResponse.json({ available: true, message: "Your current username" });
+      }
       return NextResponse.json({ available: false, message: "Username is already taken" });
     }
 

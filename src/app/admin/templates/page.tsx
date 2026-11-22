@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
@@ -15,8 +16,6 @@ import {
   Edit2,
   Trash2,
   Star,
-  CheckCircle2,
-  Sparkles,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -228,6 +227,9 @@ export default function AdminTemplatesPage() {
     }
   };
 
+  const selectClasses =
+    "flex h-10 w-full rounded-xl border border-zinc-200/90 bg-white/80 px-3 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm transition-colors hover:border-zinc-300 focus-visible:border-emerald-500/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-100 dark:hover:border-white/20";
+
   return (
     <div>
       <AdminHeader
@@ -237,76 +239,154 @@ export default function AdminTemplatesPage() {
           <Button
             size="sm"
             onClick={openCreateModal}
-            className="rounded-xl gap-1.5 text-xs font-semibold"
+            className="gap-1.5 rounded-xl text-xs font-semibold"
           >
             <Plus className="h-4 w-4" />
-            <span>Create Template</span>
+            <span className="hidden sm:inline">Create Template</span>
           </Button>
         }
       />
 
-      <div className="p-6 sm:p-8 space-y-6 max-w-6xl">
-        <Card className="overflow-hidden">
+      <div className="mx-auto max-w-6xl space-y-5 p-6 sm:space-y-6 sm:p-8">
+        <Card className="overflow-hidden p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-4 dark:border-white/[0.08] sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/15 to-emerald-500/[0.03] text-emerald-600 dark:text-emerald-400">
+                <LayoutTemplate className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate font-heading text-sm font-bold tracking-[-0.01em] text-foreground">
+                  Template catalog
+                </h2>
+                <p className="truncate text-[11px] text-text-secondary">
+                  Published themes available to creators
+                </p>
+              </div>
+            </div>
+            {!loading && (
+              <Badge variant="secondary" className="shrink-0 tabular-nums">
+                {templates.length} {templates.length === 1 ? "template" : "templates"}
+              </Badge>
+            )}
+          </div>
+
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-zinc-400">
-              <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-3">
+              <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
+              <p className="text-xs font-medium text-text-secondary">
+                Loading template catalog…
+              </p>
+            </div>
+          ) : templates.length === 0 ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600 dark:text-emerald-400">
+                <LayoutTemplate className="h-5 w-5" />
+              </span>
+              <p className="font-heading text-sm font-bold text-foreground">
+                No templates yet
+              </p>
+              <p className="max-w-sm text-xs leading-relaxed text-text-secondary">
+                Create the first Aurora template to give creators a beautiful
+                starting point.
+              </p>
+              <Button
+                size="sm"
+                onClick={openCreateModal}
+                className="mt-2 gap-1.5 rounded-xl text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Create Template</span>
+              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-50 dark:bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="py-3.5 px-4">Template Name</th>
-                    <th className="py-3.5 px-4">Category</th>
-                    <th className="py-3.5 px-4">Layout</th>
-                    <th className="py-3.5 px-4">Tier</th>
-                    <th className="py-3.5 px-4">Usage</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                <thead>
+                  <tr className="border-b border-zinc-200/80 bg-surface/60 dark:border-white/[0.08] dark:bg-white/[0.02]">
+                    {[
+                      "Template",
+                      "Category",
+                      "Layout",
+                      "Tier",
+                      "Usage",
+                      "Status",
+                      "Actions",
+                    ].map((heading, index) => (
+                      <th
+                        key={heading}
+                        className={`whitespace-nowrap px-4 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary ${
+                          index === 6 ? "text-right" : ""
+                        }`}
+                      >
+                        {heading}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
                   {templates.map((tpl) => (
-                    <tr key={tpl.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          <span>{tpl.name}</span>
-                          {tpl.isFeatured && <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />}
+                    <tr
+                      key={tpl.id}
+                      className="transition-colors hover:bg-emerald-500/[0.03] dark:hover:bg-white/[0.025]"
+                    >
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5 font-bold text-foreground">
+                          <span className="truncate">{tpl.name}</span>
+                          {tpl.isFeatured && (
+                            <Star
+                              aria-label="Featured template"
+                              className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400"
+                            />
+                          )}
                         </div>
-                        <div className="text-zinc-400 text-[11px] font-mono">slug: {tpl.slug}</div>
+                        <div className="mt-0.5 truncate font-mono text-[10.5px] text-text-secondary">
+                          /{tpl.slug}
+                        </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="px-4 py-3.5">
                         <Badge variant="outline">{tpl.category}</Badge>
                       </td>
 
-                      <td className="py-3.5 px-4 capitalize font-medium text-zinc-600 dark:text-zinc-300">
+                      <td className="px-4 py-3.5 capitalize text-[11px] font-medium text-text-secondary">
                         {tpl.layout}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="px-4 py-3.5">
                         <Badge variant={tpl.isPro ? "pro" : "secondary"}>
                           {tpl.isPro ? "PRO" : "FREE"}
                         </Badge>
                       </td>
 
-                      <td className="py-3.5 px-4 text-zinc-500">
-                        {tpl.useCount} profiles
+                      <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-[11px] text-text-secondary">
+                        <span className="font-semibold text-foreground">
+                          {tpl.useCount}
+                        </span>{" "}
+                        profiles
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="px-4 py-3.5">
                         <Badge variant={tpl.isPublished ? "success" : "secondary"}>
                           {tpl.isPublished ? "PUBLISHED" : "DRAFT"}
                         </Badge>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleFeatured(tpl)}
-                            className="h-7 px-2 text-[11px]"
+                            aria-label={
+                              tpl.isFeatured
+                                ? `Unfeature ${tpl.name}`
+                                : `Feature ${tpl.name}`
+                            }
+                            className={`h-7 rounded-lg px-2 text-[10.5px] font-semibold ${
+                              tpl.isFeatured
+                                ? "text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                                : ""
+                            }`}
                           >
                             {tpl.isFeatured ? "Unfeature" : "Feature"}
                           </Button>
@@ -315,7 +395,11 @@ export default function AdminTemplatesPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleTogglePublish(tpl)}
-                            className="h-7 px-2 text-[11px]"
+                            className={`h-7 rounded-lg px-2 text-[10.5px] font-semibold ${
+                              tpl.isPublished
+                                ? "border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                                : ""
+                            }`}
                           >
                             {tpl.isPublished ? "Unpublish" : "Publish"}
                           </Button>
@@ -323,8 +407,9 @@ export default function AdminTemplatesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={`Edit ${tpl.name}`}
                             onClick={() => openEditModal(tpl)}
-                            className="h-7 w-7 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                            className="h-7 w-7 rounded-lg text-text-secondary hover:bg-zinc-900/[0.05] hover:text-foreground dark:hover:bg-white/[0.06]"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
                           </Button>
@@ -332,8 +417,9 @@ export default function AdminTemplatesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={`Delete ${tpl.name}`}
                             onClick={() => setDeleteId(tpl.id)}
-                            className="h-7 w-7 text-zinc-400 hover:text-red-500"
+                            className="h-7 w-7 rounded-lg text-text-secondary hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -348,31 +434,29 @@ export default function AdminTemplatesPage() {
         </Card>
       </div>
 
-      {/* Create / Edit Modal */}
+      {/* Create / edit modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingTemplate ? "Edit Template" : "Create New Template"}
         description="Configure metadata and JSON design properties."
       >
-        <form onSubmit={handleSave} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                Template Name *
-              </label>
+        <form onSubmit={handleSave} className="space-y-4 pt-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="template-name">Template Name *</Label>
               <Input
+                id="template-name"
                 required
                 placeholder="Obsidian Minimal"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                Unique Slug *
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="template-slug">Unique Slug *</Label>
               <Input
+                id="template-slug"
                 required
                 placeholder="obsidian-minimal"
                 value={formSlug}
@@ -381,15 +465,14 @@ export default function AdminTemplatesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                Category
-              </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="template-category">Category</Label>
               <select
+                id="template-category"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-900"
+                className={selectClasses}
               >
                 <option value="Creator">Creator</option>
                 <option value="Minimal">Minimal</option>
@@ -404,14 +487,13 @@ export default function AdminTemplatesPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                Layout
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="template-layout">Layout</Label>
               <select
+                id="template-layout"
                 value={formLayout}
                 onChange={(e) => setFormLayout(e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-900"
+                className={selectClasses}
               >
                 <option value="classic">Classic</option>
                 <option value="hero">Hero</option>
@@ -424,53 +506,55 @@ export default function AdminTemplatesPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Description
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="template-description">Description</Label>
             <Input
+              id="template-description"
               placeholder="Crisp monochrome aesthetic..."
               value={formDesc}
               onChange={(e) => setFormDesc(e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Styles JSON Configuration
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="template-styles">Styles JSON Configuration</Label>
             <Textarea
+              id="template-styles"
               rows={5}
               value={formStylesJson}
               onChange={(e) => setFormStylesJson(e.target.value)}
-              className="font-mono text-xs"
+              className="font-mono text-[11px] leading-relaxed"
             />
           </div>
 
-          <div className="flex items-center gap-6 pt-2">
-            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground">
               <input
                 type="checkbox"
                 checked={formIsPro}
                 onChange={(e) => setFormIsPro(e.target.checked)}
-                className="rounded border-zinc-300 text-emerald-500"
+                className="h-4 w-4 rounded border-zinc-300 accent-emerald-500"
               />
               <span>PRO Tier Only</span>
             </label>
 
-            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground">
               <input
                 type="checkbox"
                 checked={formIsFeatured}
                 onChange={(e) => setFormIsFeatured(e.target.checked)}
-                className="rounded border-zinc-300 text-emerald-500"
+                className="h-4 w-4 rounded border-zinc-300 accent-emerald-500"
               />
               <span>Featured on Homepage</span>
             </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+          <div className="flex justify-end gap-2 border-t border-zinc-200/80 pt-4 dark:border-white/[0.08]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" isLoading={isSaving}>
@@ -480,7 +564,7 @@ export default function AdminTemplatesPage() {
         </form>
       </Modal>
 
-      {/* Delete Confirm */}
+      {/* Delete confirmation */}
       <ConfirmModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
@@ -492,4 +576,3 @@ export default function AdminTemplatesPage() {
     </div>
   );
 }
-

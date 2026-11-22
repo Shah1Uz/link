@@ -18,12 +18,35 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("biospace-locale") as Locale;
     if (saved && (saved === "en" || saved === "ru" || saved === "uz")) {
       setLocaleState(saved);
+      document.documentElement.lang = saved;
+    } else {
+      document.documentElement.lang = defaultLocale;
     }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "biospace-locale" && (e.newValue === "en" || e.newValue === "ru" || e.newValue === "uz")) {
+        setLocaleState(e.newValue);
+        document.documentElement.lang = e.newValue;
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem("biospace-locale", newLocale);
+    try {
+      localStorage.setItem("biospace-locale", newLocale);
+      document.cookie = `biospace-locale=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = newLocale;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("biospace-locale-change", { detail: newLocale }));
+      }
+    } catch (err) {
+      console.warn("Failed to persist locale:", err);
+    }
   };
 
   const t = getDictionary(locale);

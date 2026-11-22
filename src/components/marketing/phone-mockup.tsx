@@ -1,22 +1,38 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
-import { CheckCircle2, Share2, ExternalLink, Sparkles, Wifi, Battery, Signal } from "lucide-react";
+import {
+  CheckCircle2,
+  Share2,
+  Sparkles,
+  Signal,
+  Wifi,
+  BatteryMedium,
+} from "lucide-react";
 import { PlatformIcon } from "@/components/shared/platform-icon";
 import { YouTubeEmbed } from "@/components/shared/youtube-embed";
-import { isYouTubeUrl } from "@/lib/utils";
+import { InstagramEmbed } from "@/components/shared/instagram-embed";
+import { TikTokEmbed } from "@/components/shared/tiktok-embed";
+import { groupLinksWithYouTubeCarousels, formatUrlForHref, getHeroBlurPx, getHeroFadeConfig } from "@/lib/utils";
+import { withAlpha } from "@/components/profile/theme-surface";
+import { ProfileSticker } from "@/components/profile/profile-sticker";
+import { getFontFamilyCss } from "@/lib/fonts-catalog";
+import { DynamicFontLoader } from "@/components/shared/dynamic-font-loader";
 
 interface PhoneMockupProps {
   displayName?: string;
   username?: string;
   bio?: string;
   avatarUrl?: string;
+  bannerUrl?: string | null;
+  layout?: string;
   verified?: boolean;
   theme?: {
     backgroundColor?: string;
     backgroundType?: string;
     backgroundGradient?: string;
+    backgroundImage?: string | null;
+    backgroundVideo?: string | null;
     buttonStyle?: string;
     buttonColor?: string;
     buttonTextColor?: string;
@@ -25,12 +41,33 @@ interface PhoneMockupProps {
     textColor?: string;
     accentColor?: string;
     fontHeading?: string;
+    showBranding?: boolean;
+    heroBlur?: string;
+    heroFade?: string;
+    heroDarken?: string;
+    stickersEnabled?: boolean;
+    stickerId?: string | null;
+    stickerUrl?: string | null;
+    stickerPosition?: string | null;
+    stickerAnimation?: string | null;
+    stickerSize?: string | null;
+    stickerRotation?: string | null;
+    stickerLink?: string | null;
+    stickerPosX?: number | null;
+    stickerPosY?: number | null;
+    wallpaperEffect?: string | null;
+    wallpaperTint?: number | null;
+    wallpaperNoise?: boolean | null;
+    gradientStyle?: string | null;
+    gradientColor?: string | null;
+    gradientDirection?: string | null;
   };
   links?: Array<{
     id: string;
     title: string;
     url: string;
     icon?: string | null;
+    thumbnail?: string | null;
     displayMode?: string | null;
     isPinned?: boolean;
     clicksCount?: number;
@@ -39,22 +76,24 @@ interface PhoneMockupProps {
 }
 
 export function PhoneMockup({
-  displayName = "Alex Rivera",
+  displayName = "@shahuztech",
   username = "shahuztech",
   bio = "Tech entrepreneur, YouTuber & full-stack architect building modern web products. 🚀",
-  avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80",
+  avatarUrl,
+  bannerUrl,
+  layout = "classic",
   verified = true,
   theme = {
-    backgroundColor: "#0d1117",
+    backgroundColor: "#000000",
     backgroundType: "gradient",
-    backgroundGradient: "linear-gradient(135deg, #0d1117 0%, #161b22 50%, #064e3b 100%)",
+    backgroundGradient: "linear-gradient(180deg, #000000 0%, #031402 32%, #163a05 65%, #3d7e05 100%)",
     buttonStyle: "filled",
     buttonColor: "#10b981",
     buttonTextColor: "#042f2e",
     buttonBorderColor: "#34d399",
     buttonRadius: "16px",
-    textColor: "#f0fdf4",
-    accentColor: "#10b981",
+    textColor: "#ffffff",
+    accentColor: "#a3e635",
   },
   links = [
     {
@@ -97,185 +136,605 @@ export function PhoneMockup({
 }: PhoneMockupProps) {
   const [clickedLink, setClickedLink] = useState<string | null>(null);
 
-  const backgroundStyle =
-    theme.backgroundType === "gradient" && theme.backgroundGradient
+  const activeVideoUrl =
+    theme.backgroundType === "video" && Boolean(theme.backgroundVideo)
+      ? theme.backgroundVideo
+      : null;
+  const classicVideoUrl = activeVideoUrl;
+
+  const backgroundStyle = activeVideoUrl
+    ? { backgroundColor: "transparent" }
+    : theme.backgroundType === "gradient" && theme.backgroundGradient
       ? { background: theme.backgroundGradient }
-      : { backgroundColor: theme.backgroundColor || "#0d1117" };
+      : theme.backgroundColor
+        ? { backgroundColor: theme.backgroundColor }
+        : { backgroundColor: "#0d1117" };
 
   return (
-    <div className="relative mx-auto w-[310px] sm:w-[340px] select-none">
-      {/* Outer Phone Shell */}
-      <div className="relative overflow-hidden rounded-[48px] border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl ring-1 ring-zinc-700/50">
-        {/* Dynamic Island / Speaker Notch */}
-        <div className="absolute left-1/2 top-3 z-30 h-5 w-24 -translate-x-1/2 rounded-full bg-black flex items-center justify-center">
-          <div className="h-2.5 w-2.5 rounded-full bg-zinc-900/80 mr-2" />
-          <div className="h-2 w-2 rounded-full bg-blue-950/80" />
-        </div>
+    <div className="relative mx-auto w-[300px] select-none sm:w-[340px]">
+      {/* Ambient aurora halo behind the device */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -bottom-6 -top-6 z-0 rounded-[3rem] bg-gradient-to-tr from-emerald-500/25 via-teal-500/[0.08] to-cyan-500/25 blur-3xl"
+      />
 
-        {/* Screen Area */}
-        <div
-          className="relative min-h-[640px] px-5 pb-8 pt-10 text-center transition-all duration-300 flex flex-col justify-between"
-          style={{
-            ...backgroundStyle,
-            color: theme.textColor || "#ffffff",
-          }}
-        >
-          {/* Top Status Bar */}
-          <div className="flex items-center justify-between text-[11px] font-semibold opacity-70 px-2 mb-4">
-            <span>9:41</span>
-            <div className="flex items-center gap-1.5">
-              <Signal className="h-3 w-3" />
-              <Wifi className="h-3 w-3" />
-              <Battery className="h-3.5 w-3.5" />
-            </div>
-          </div>
+      {/* Side hardware buttons */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[13px] top-28 z-20 h-10 w-[3px] rounded-full bg-zinc-700 shadow-sm"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[13px] top-[10.5rem] z-20 h-14 w-[3px] rounded-full bg-zinc-700 shadow-sm"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[13px] top-[9.5rem] z-20 h-20 w-[3px] rounded-full bg-zinc-700 shadow-sm"
+      />
 
-          {/* Profile Header */}
-          <div className="flex flex-col items-center">
-            {/* Share action button in profile */}
-            <div className="w-full flex justify-end mb-1">
-              <div className="h-8 w-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-current/80 hover:bg-black/40 cursor-pointer transition-colors">
-                <Share2 className="h-4 w-4" />
-              </div>
-            </div>
-
-            {/* Avatar */}
-            <div className="relative mb-3.5 group">
+      {/* Outer Phone Shell — premium bezel frame */}
+      <div className="phone-mockup relative rounded-[3.1rem] bg-zinc-950 p-[7px] ring-1 ring-zinc-700/60">
+        {/* Screen Area - Smooth Scrollable */}
+        <div className="relative overflow-hidden rounded-[2.65rem] bg-zinc-950 ring-1 ring-white/[0.06]">
+          {/* Wallpaper / Classic Layout Background Video with High-Contrast Shield */}
+          {activeVideoUrl && (
+            <div className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-hidden rounded-[2.65rem]">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className={`h-full w-full object-cover object-center scale-105 transition-all duration-300 ${theme.wallpaperEffect === "mono"
+                  ? "grayscale contrast-125"
+                  : theme.wallpaperEffect === "blur"
+                    ? "blur-md scale-110"
+                    : theme.wallpaperEffect === "halftone"
+                      ? "contrast-150 brightness-95"
+                      : ""
+                  }`}
+                src={activeVideoUrl}
+              />
               <div
-                className="h-24 w-24 rounded-full p-1 border-2 transition-transform duration-300 group-hover:scale-105"
-                style={{ borderColor: theme.accentColor || "#10b981" }}
-              >
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="h-full w-full rounded-full object-cover shadow-md"
-                />
-              </div>
-            </div>
-
-            {/* Display Name & Badge */}
-            <div className="flex items-center justify-center gap-1.5">
-              <h2 className="text-lg font-bold tracking-tight">
-                {displayName}
-              </h2>
-              {verified && (
-                <CheckCircle2
-                  className="h-4 w-4 shrink-0"
-                  style={{ color: theme.accentColor || "#38bdf8" }}
+                className="absolute inset-0 transition-colors duration-200"
+                style={{
+                  backgroundColor: `rgba(0, 0, 0, ${(Number(theme.wallpaperTint ?? 30) / 100) * 0.75})`,
+                }}
+              />
+              {theme.wallpaperNoise && (
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-25 mix-blend-overlay"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                  }}
                 />
               )}
             </div>
+          )}
 
-            {/* Username */}
-            <p className="text-xs opacity-75 font-medium mt-0.5">
-              @{username}
-            </p>
-
-            {/* Bio */}
-            {bio && (
-              <p className="mt-2.5 max-w-[260px] text-xs leading-relaxed opacity-90 font-normal">
-                {bio}
-              </p>
-            )}
-
-            {/* Social Icons Quick Row */}
-            <div className="flex items-center justify-center gap-3 mt-4 opacity-90">
-              <div className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-colors">
-                <PlatformIcon platform="youtube" size={14} />
-              </div>
-              <div className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-colors">
-                <PlatformIcon platform="twitter" size={14} />
-              </div>
-              <div className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-colors">
-                <PlatformIcon platform="github" size={14} />
-              </div>
-              <div className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-colors">
-                <PlatformIcon platform="instagram" size={14} />
-              </div>
+          {/* Status bar */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 pt-3 text-[10px] font-semibold tracking-tight opacity-90"
+            style={{ color: theme.textColor || "#ffffff" }}
+          >
+            <span>9:41</span>
+            <div className="flex items-center gap-1">
+              <Signal className="h-3 w-3" />
+              <Wifi className="h-3 w-3" />
+              <BatteryMedium className="h-3.5 w-3.5" />
             </div>
           </div>
 
-          {/* Links Section */}
-          <div className="mt-6 flex flex-col gap-2.5 flex-1">
-            {links.map((link) => {
-              const isClicked = clickedLink === link.id;
-              const isYtEmbed = isYouTubeUrl(link.url) && (link.displayMode === "embed" || link.displayMode === "video");
+          {/* Dynamic Island / Speaker Notch */}
+          <div className="absolute left-1/2 top-2.5 z-30 flex h-6 w-24 -translate-x-1/2 items-center justify-center rounded-full bg-black shadow-[0_2px_10px_rgba(0,0,0,0.65)] ring-1 ring-white/[0.06]">
+            <div className="mr-2 h-2.5 w-2.5 rounded-full bg-zinc-900/90" />
+            <div className="h-2 w-2 rounded-full bg-blue-950/80 ring-1 ring-blue-500/20" />
+          </div>
 
-              if (isYtEmbed) {
-                return (
-                  <div key={link.id} className="text-left">
-                    <YouTubeEmbed
-                      url={link.url}
-                      title={link.title}
-                      borderRadius={theme.buttonRadius || "16px"}
-                      themeButtonColor={theme.buttonColor}
-                      themeTextColor={theme.buttonTextColor}
-                      themeAccentColor={theme.accentColor || "#ef4444"}
-                      onPlayClick={() => {
-                        if (!interactive) return;
-                        setClickedLink(link.id);
-                      }}
-                    />
-                  </div>
-                );
-              }
+          <div
+            className="relative z-10 flex h-[660px] max-h-[660px] flex-col overflow-y-auto overflow-x-hidden px-4 pb-7 pt-11 text-center transition-all duration-300 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:px-5"
+            style={{
+              ...backgroundStyle,
+              color: theme.textColor || "#ffffff",
+              fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            }}
+          >
+            {/* Dynamic Font Loader for the active Heading font */}
+            <DynamicFontLoader font={theme.fontHeading} />
+
+            {/* Full-Screen Edge-to-Edge Hero Cover with smooth color gradient fade into theme background */}
+            {layout === "hero" && (() => {
+              const fadeCfg = getHeroFadeConfig(theme.heroFade);
+              const darkenMode = theme.heroDarken || "balanced";
+              const topDark = fadeCfg.topDarken(darkenMode);
+              const heroSrc =
+                avatarUrl ||
+                bannerUrl ||
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80";
 
               return (
                 <div
-                  key={link.id}
-                  onClick={() => {
-                    if (!interactive) return;
-                    setClickedLink(link.id);
-                    setTimeout(() => setClickedLink(null), 1000);
-                  }}
-                  className={`relative flex items-center justify-between px-4 py-3.5 text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer ${
-                    interactive ? "hover:scale-[1.02] active:scale-[0.98]" : ""
-                  }`}
+                  className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-72 w-full overflow-hidden rounded-t-[2.65rem]"
                   style={{
-                    backgroundColor: theme.buttonColor || "#10b981",
-                    color: theme.buttonTextColor || "#042f2e",
-                    borderRadius: theme.buttonRadius || "16px",
-                    border: theme.buttonBorderColor
-                      ? `1px solid ${theme.buttonBorderColor}`
-                      : "none",
+                    maskImage: fadeCfg.maskGradient,
+                    WebkitMaskImage: fadeCfg.maskGradient,
                   }}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    {link.icon && (
-                      <div className="shrink-0">
-                        <PlatformIcon platform={link.icon} size={16} />
-                      </div>
-                    )}
-                    <span className="truncate">{link.title}</span>
-                  </div>
+                  <img
+                    src={heroSrc}
+                    alt={displayName}
+                    className="h-full w-full object-cover object-top"
+                  />
 
-                  <div className="shrink-0 flex items-center opacity-70">
-                    {link.isPinned ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10 mr-1">
-                        Pinned
-                      </span>
-                    ) : null}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </div>
-
-                  {isClicked && (
-                    <span className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-black/70 text-white text-[11px] font-medium backdrop-blur-sm animate-in fade-in">
-                      Opening Link...
-                    </span>
-                  )}
+                  {/* Smooth top darken for status bar / icons */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(to bottom, rgba(0, 0, 0, ${topDark}) 0%, transparent 65%)`,
+                    }}
+                  />
                 </div>
               );
-            })}
-          </div>
+            })()}
+            {/* Wallpaper: Image Background with Effect, Tint & Noise */}
+            {theme?.backgroundType === "image" && (
+              <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                <img
+                  src={
+                    theme.backgroundImage ||
+                    "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&auto=format&fit=crop&q=80"
+                  }
+                  alt="Wallpaper"
+                  className={`h-full w-full object-cover transition-all duration-300 ${theme.wallpaperEffect === "mono"
+                    ? "grayscale contrast-125"
+                    : theme.wallpaperEffect === "blur"
+                      ? "blur-md scale-110"
+                      : theme.wallpaperEffect === "halftone"
+                        ? "contrast-150 brightness-95"
+                        : ""
+                    }`}
+                />
+                {theme.wallpaperEffect === "halftone" && (
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-40 mix-blend-multiply"
+                    style={{
+                      backgroundImage: "radial-gradient(circle at center, black 1.5px, transparent 1.6px)",
+                      backgroundSize: "6px 6px",
+                    }}
+                  />
+                )}
+                <div
+                  className="absolute inset-0 transition-colors duration-200"
+                  style={{
+                    backgroundColor: `rgba(0, 0, 0, ${(Number(theme.wallpaperTint ?? 20) / 100) * 0.75})`,
+                  }}
+                />
+                {theme.wallpaperNoise && (
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-25 mix-blend-overlay"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                )}
+              </div>
+            )}
 
-          {/* BioSpace Branding */}
-          <div className="mt-6 pt-3 flex items-center justify-center gap-1.5 text-[11px] font-medium opacity-60">
-            <Sparkles className="h-3 w-3" />
-            <span>Join {username} on BioSpace</span>
+            {/* Wallpaper: Blur Mesh Background */}
+            {theme?.backgroundType === "blur" && (
+              <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                <div className="absolute -inset-10 bg-gradient-to-tr from-lime-800 via-amber-700 to-emerald-900 blur-2xl opacity-90 scale-125" />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: `rgba(0, 0, 0, ${(Number(theme.wallpaperTint ?? 20) / 100) * 0.6})`,
+                  }}
+                />
+                {theme.wallpaperNoise && (
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-25 mix-blend-overlay"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Wallpaper: Pattern Background */}
+            {theme?.backgroundType === "pattern" && (
+              <div
+                className="pointer-events-none absolute inset-0 z-0"
+                style={{
+                  backgroundColor: theme.backgroundColor || "#5d7c0b",
+                  backgroundImage: "radial-gradient(rgba(255,255,255,0.25) 1.5px, transparent 0)",
+                  backgroundSize: "12px 12px",
+                }}
+              />
+            )}
+
+            {/* Wallpaper: Subtle Grain Noise for Gradient, Color & Pattern */}
+            {theme?.wallpaperNoise &&
+              theme?.backgroundType !== "image" &&
+              theme?.backgroundType !== "blur" && (
+                <div
+                  className="pointer-events-none absolute inset-0 z-0 opacity-25 mix-blend-overlay"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                  }}
+                />
+              )}
+
+            {/* Live Sticker Decoration in Mockup */}
+            {theme?.stickersEnabled && (
+              <ProfileSticker theme={theme} inPreview={true} />
+            )}
+
+            {/* Top Header Floating Buttons: Sparkle on left, Share on right */}
+            <div className="z-20 mb-2 flex items-center justify-between px-1">
+              <div className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/90 shadow-2xs backdrop-blur-md transition-colors hover:bg-white/20">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+
+              <div className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/90 shadow-2xs backdrop-blur-md transition-colors hover:bg-white/20">
+                <Share2 className="h-3.5 w-3.5" />
+              </div>
+            </div>
+
+            {/* Profile Header by Selected Layout */}
+            <div className="flex flex-col items-center">
+              {layout === "hero" ? (
+                /* HERO LAYOUT: Expansive Full-Screen edge-to-edge cover with smooth gradient fade */
+                <div className="mb-2 flex w-full flex-col items-center pt-36 sm:pt-40">
+                  <div className="flex items-center justify-center gap-1.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
+                    <h2
+                      className="text-2xl sm:text-3xl font-extrabold tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] select-none"
+                      style={{
+                        fontFamily: getFontFamilyCss(theme.fontHeading),
+                        color: theme.textColor || "#ffffff",
+                      }}
+                    >
+                      {displayName}
+                    </h2>
+                    {verified && (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: theme.accentColor || "#38bdf8" }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    className="text-xs font-semibold opacity-90 drop-shadow-[0_1px_5px_rgba(0,0,0,0.85)]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    @{username}
+                  </p>
+                </div>
+              ) : layout === "banner" ? (
+                /* BANNER LAYOUT */
+                <div className="relative mb-4 flex w-full flex-col items-center">
+                  <div className="relative h-20 w-full overflow-hidden rounded-xl border border-white/15 bg-gradient-to-r from-purple-500/30 via-pink-500/20 to-emerald-500/30 shadow-xs">
+                    <img
+                      src={
+                        bannerUrl ||
+                        "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&auto=format&fit=crop&q=80"
+                      }
+                      alt="Banner"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div
+                    className="relative z-10 -mt-8 rounded-full border-2 p-0.5 shadow-lg transition-transform duration-300 group-hover:scale-105"
+                    style={{
+                      borderColor: theme.accentColor || "#10b981",
+                      backgroundColor: theme.backgroundColor || "#0d1117",
+                    }}
+                  >
+                    <img
+                      src={
+                        avatarUrl ||
+                        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80"
+                      }
+                      alt={displayName}
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                  </div>
+
+                  <h2
+                    className="mt-2 text-xl font-bold tracking-tight select-none"
+                    style={{
+                      fontFamily: getFontFamilyCss(theme.fontHeading),
+                      color: theme.textColor || "#ffffff",
+                    }}
+                  >
+                    {displayName}
+                  </h2>
+                  <p
+                    className="text-xs font-medium opacity-75"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    @{username}
+                  </p>
+                </div>
+              ) : layout === "cutout" ? (
+                /* CUTOUT LAYOUT */
+                <div className="group relative mb-2.5 flex flex-col items-center justify-center">
+                  <div className="flex h-28 w-28 items-end justify-center overflow-hidden">
+                    <img
+                      src={
+                        avatarUrl ||
+                        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80"
+                      }
+                      alt={displayName}
+                      className="h-full w-auto object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)] transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <h2
+                    className="mt-1 text-xl font-bold tracking-tight select-none"
+                    style={{
+                      fontFamily: getFontFamilyCss(theme.fontHeading),
+                      color: theme.textColor || "#ffffff",
+                    }}
+                  >
+                    {displayName}
+                  </h2>
+                  <p
+                    className="text-xs font-medium opacity-75"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    @{username}
+                  </p>
+                </div>
+              ) : layout === "shape" ? (
+                /* SHAPE LAYOUT */
+                <div className="group relative mb-3 flex flex-col items-center justify-center">
+                  <div
+                    className="flex h-20 w-20 items-center justify-center p-1 shadow-lg transition-all duration-500 group-hover:scale-105"
+                    style={{
+                      borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%",
+                      backgroundColor: theme.accentColor || "#a855f7",
+                    }}
+                  >
+                    <div
+                      className="h-full w-full overflow-hidden"
+                      style={{ borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%" }}
+                    >
+                      <img
+                        src={
+                          avatarUrl ||
+                          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80"
+                        }
+                        alt={displayName}
+                        className="h-full w-full scale-110 object-cover"
+                      />
+                    </div>
+                  </div>
+                  <h2
+                    className="mt-2 text-xl font-bold tracking-tight select-none"
+                    style={{
+                      fontFamily: getFontFamilyCss(theme.fontHeading),
+                      color: theme.textColor || "#ffffff",
+                    }}
+                  >
+                    {displayName}
+                  </h2>
+                  <p
+                    className="text-xs font-medium opacity-75"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    @{username}
+                  </p>
+                </div>
+              ) : (
+                /* CLASSIC LAYOUT */
+                <div className="relative mb-3 flex flex-col items-center">
+                  <div
+                    className="mb-2 h-20 w-20 rounded-full border-2 p-1 transition-transform duration-300 group-hover:scale-105"
+                    style={{ borderColor: theme.accentColor || "#10b981" }}
+                  >
+                    <img
+                      src={
+                        avatarUrl ||
+                        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80"
+                      }
+                      alt={displayName}
+                      className="h-full w-full rounded-full object-cover shadow-md"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <h2
+                      className={`text-xl font-bold tracking-tight select-none ${classicVideoUrl ? "drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]" : ""
+                        }`}
+                      style={{
+                        fontFamily: getFontFamilyCss(theme.fontHeading),
+                        color: theme.textColor || "#ffffff",
+                      }}
+                    >
+                      {displayName}
+                    </h2>
+                    {verified && (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: theme.accentColor || "#38bdf8" }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    className={`text-xs font-medium opacity-75 ${classicVideoUrl ? "drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]" : ""
+                      }`}
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    @{username}
+                  </p>
+                </div>
+              )}
+
+              {/* Bio (rendered for all layouts if present) */}
+              {bio && (
+                <p
+                  className={`mt-2 max-w-[260px] text-xs font-normal leading-relaxed opacity-90 ${classicVideoUrl ? "drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]" : ""
+                    }`}
+                >
+                  {bio}
+                </p>
+              )}
+            </div>
+
+            {/* Links Section */}
+            <div className="mt-5 flex flex-1 flex-col gap-2.5">
+              {groupLinksWithYouTubeCarousels(links).map((item) => {
+                if (item.type === "youtube-carousel") {
+                  return (
+                    <div key={item.key} className="text-left">
+                      <YouTubeEmbed
+                        videos={item.videos}
+                        borderRadius={theme.buttonRadius || "18px"}
+                        themeButtonColor={theme.buttonColor}
+                        themeTextColor={theme.buttonTextColor}
+                        themeBorderColor={theme.buttonBorderColor}
+                        themeButtonStyle={theme.buttonStyle}
+                        themeAccentColor={theme.accentColor || "#ef4444"}
+                        onPlayClick={(linkId) => {
+                          if (!interactive) return;
+                          if (linkId) setClickedLink(linkId);
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (item.type === "instagram-embed") {
+                  return (
+                    <div key={item.key} className="text-left">
+                      <InstagramEmbed
+                        url={item.link.url}
+                        title={item.link.title}
+                        description={item.link.description}
+                        thumbnail={item.link.thumbnail}
+                        posts={item.posts}
+                        borderRadius={theme.buttonRadius || "18px"}
+                        themeButtonColor={theme.buttonColor}
+                        themeTextColor={theme.buttonTextColor}
+                        themeBorderColor={theme.buttonBorderColor}
+                        themeButtonStyle={theme.buttonStyle}
+                        themeAccentColor={theme.accentColor || "#e1306c"}
+                        onPostClick={(targetUrl) => {
+                          if (!interactive) return;
+                          if (item.link.id) setClickedLink(item.link.id);
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (item.type === "tiktok-embed") {
+                  return (
+                    <div key={item.key} className="text-left">
+                      <TikTokEmbed
+                        url={item.link.url}
+                        title={item.link.title}
+                        description={item.link.description}
+                        thumbnail={item.link.thumbnail}
+                        borderRadius={theme.buttonRadius || "18px"}
+                        themeButtonColor={theme.buttonColor}
+                        themeTextColor={theme.buttonTextColor}
+                        themeBorderColor={theme.buttonBorderColor}
+                        themeButtonStyle={theme.buttonStyle}
+                        themeAccentColor={theme.accentColor || "#00f2fe"}
+                        onVideoClick={(targetUrl) => {
+                          if (!interactive) return;
+                          if (item.link.id) setClickedLink(item.link.id);
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                const link = item.link;
+                const isClicked = clickedLink === link.id;
+                const destinationUrl = interactive ? formatUrlForHref(link.url, link.icon) : undefined;
+
+                return (
+                  <a
+                    key={link.id}
+                    href={destinationUrl}
+                    target={interactive ? "_blank" : undefined}
+                    rel={interactive ? "noopener noreferrer" : undefined}
+                    onClick={(e) => {
+                      if (!interactive) {
+                        e.preventDefault();
+                        return;
+                      }
+                      setClickedLink(link.id);
+                      setTimeout(() => setClickedLink(null), 1000);
+                    }}
+                    className={`relative flex items-center justify-between px-4 py-3.5 text-xs font-semibold shadow-sm transition-all duration-200 no-underline ${interactive ? "cursor-pointer hover:scale-[1.02] active:scale-[0.98]" : "cursor-default"
+                      }`}
+                    style={{
+                      backgroundColor: theme.buttonColor || "#10b981",
+                      color: theme.buttonTextColor || "#042f2e",
+                      borderRadius: theme.buttonRadius || "16px",
+                      border: theme.buttonBorderColor
+                        ? `1px solid ${theme.buttonBorderColor}`
+                        : "none",
+                      fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    }}
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5 pr-2">
+                      {link.icon && (
+                        <div className="shrink-0">
+                          <PlatformIcon platform={link.icon} size={16} />
+                        </div>
+                      )}
+                      <span className="truncate">{link.title}</span>
+                    </div>
+
+                    {link.isPinned && (
+                      <div className="flex shrink-0 items-center opacity-70">
+                        <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px]">
+                          Pinned
+                        </span>
+                      </div>
+                    )}
+
+                    {isClicked && (
+                      <span className="absolute inset-0 flex items-center justify-center rounded-[inherit] bg-black/70 text-[11px] font-medium text-white backdrop-blur-sm animate-in fade-in">
+                        Opening Link...
+                      </span>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+
+            {/* Bottom Call to Action and Footer */}
+            {theme?.showBranding && (
+              <div className="mt-auto pt-4">
+                {/* White Pill Button: Get your own BioSpace */}
+                <div className="mb-3 flex justify-center">
+                  <a
+                    href="/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs font-bold tracking-tight text-zinc-950 shadow-md transition-colors hover:bg-zinc-100"
+                  >
+                    Get your own BioSpace
+                  </a>
+                </div>
+
+                {/* Footer Links */}
+                <div className="space-y-1 text-[10px] font-medium text-white/70">
+                  <p className="tracking-tight">
+                    Cookie Preferences · Report · Privacy
+                  </p>
+                  <p className="cursor-pointer text-white/50 transition-colors hover:text-white/80">
+                    More from BioSpace
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDashboard } from "@/context/dashboard-context";
-import { Sparkles, Check, ArrowRight, Loader2 } from "lucide-react";
+import { useI18n } from "@/components/i18n-provider";
+import { Sparkles, Loader2, Palette } from "lucide-react";
 import { toast } from "sonner";
 
 interface TemplateItem {
@@ -36,6 +37,7 @@ const categories = [
 ];
 
 export default function DashboardTemplatesPage() {
+  const { t } = useI18n();
   const { updateTheme, updateProfile, subscriptionTier } = useDashboard();
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [selectedCat, setSelectedCat] = useState("All");
@@ -96,22 +98,22 @@ export default function DashboardTemplatesPage() {
   return (
     <div>
       <DashboardHeader
-        title="Template Gallery"
-        description="Switch between 20+ professionally curated creator themes in one click without losing your links."
+        title={t.templatesStudio.title}
+        description={t.templatesStudio.description}
       />
 
-      <div className="p-4 sm:p-8 space-y-6 max-w-6xl">
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* Filter pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {categories.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setSelectedCat(cat)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold shrink-0 transition-all ${
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-bold transition-all duration-200 ease-out-soft active:scale-95 ${
                 selectedCat === cat
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200"
+                  ? "border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-800 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:text-emerald-200"
+                  : "border-border/80 bg-surface/40 text-text-secondary hover:border-border hover:text-foreground"
               }`}
             >
               {cat}
@@ -119,13 +121,33 @@ export default function DashboardTemplatesPage() {
           ))}
         </div>
 
-        {/* Templates Grid */}
         {loading ? (
-          <div className="h-64 flex items-center justify-center text-zinc-400">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-3xl border border-border/70 bg-card p-4"
+              >
+                <div className="shimmer h-44 w-full rounded-xl border border-border/60 bg-foreground/[0.04]" />
+                <div className="mt-4 space-y-2">
+                  <div className="h-3.5 w-2/3 rounded-full bg-foreground/[0.06]" />
+                  <div className="h-2.5 w-full rounded-full bg-foreground/[0.04]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-surface/30 px-6 py-16 text-center">
+            <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-border/70 bg-background/60 text-text-secondary">
+              <Palette className="h-5 w-5" />
+            </span>
+            <p className="font-heading text-sm font-bold text-foreground">No templates in this category</p>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-text-secondary">
+              Try another category — new themes are added regularly.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((tpl) => {
               let styles: any = {};
               try {
@@ -141,24 +163,24 @@ export default function DashboardTemplatesPage() {
               return (
                 <Card
                   key={tpl.id}
-                  className="group flex flex-col justify-between overflow-hidden p-4 hover:shadow-lg transition-all duration-200"
+                  className="card-lift group flex flex-col justify-between overflow-hidden p-3.5"
                 >
-                  {/* Miniature Visual Preview */}
+                  {/* Miniature preview */}
                   <div
-                    className="relative h-48 w-full rounded-xl overflow-hidden p-3.5 flex flex-col items-center justify-between text-center select-none shadow-inner"
+                    className="relative flex h-44 w-full select-none flex-col items-center justify-between overflow-hidden rounded-xl p-3.5 text-center shadow-inner"
                     style={{ ...bgStyle, color: styles.textColor || "#fff" }}
                   >
-                    <div className="w-full flex justify-between items-center text-[10px] opacity-75">
-                      <span className="font-semibold">{tpl.layout.toUpperCase()}</span>
+                    <div className="flex w-full items-center justify-between text-[10px] opacity-75">
+                      <span className="font-semibold uppercase tracking-wider">{tpl.layout}</span>
                       {tpl.isPro && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-black font-bold text-[9px]">
+                        <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-950">
                           PRO
                         </span>
                       )}
                     </div>
 
                     <div className="flex flex-col items-center">
-                      <div className="h-10 w-10 rounded-full border-2 border-white/30 bg-white/20 mb-1 flex items-center justify-center text-[10px] font-bold">
+                      <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/30 bg-white/20 text-[10px] font-bold backdrop-blur-sm">
                         BIO
                       </div>
                       <div className="text-[11px] font-bold">{tpl.name}</div>
@@ -166,30 +188,29 @@ export default function DashboardTemplatesPage() {
 
                     <div className="w-full space-y-1 px-3">
                       <div
-                        className="w-full py-1 text-[9px] font-semibold truncate rounded shadow-sm"
+                        className="w-full truncate rounded py-1 text-[9px] font-semibold shadow-sm"
                         style={{
                           backgroundColor: styles.buttonColor || "#fff",
                           color: styles.buttonTextColor || "#000",
                           borderRadius: styles.buttonRadius || "6px",
                         }}
                       >
-                        Sample Link Button
+                        Sample link button
                       </div>
                     </div>
                   </div>
 
-                  {/* Info & Apply Button */}
-                  <div className="pt-4 flex flex-col justify-between flex-1">
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-bold text-sm text-zinc-900 dark:text-white">
+                  <div className="flex flex-1 flex-col justify-between pt-3.5">
+                    <div className="mb-3">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <h4 className="truncate font-heading text-[13px] font-bold text-foreground">
                           {tpl.name}
                         </h4>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="shrink-0 text-[9px]">
                           {tpl.category}
                         </Badge>
                       </div>
-                      <p className="text-xs text-zinc-500 line-clamp-2">
+                      <p className="line-clamp-2 text-[11px] leading-relaxed text-text-secondary">
                         {tpl.description}
                       </p>
                     </div>
@@ -200,8 +221,8 @@ export default function DashboardTemplatesPage() {
                       isLoading={isApplying}
                       className="w-full rounded-xl text-xs font-semibold"
                     >
-                      <span>Apply Template</span>
-                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      <span>Apply template</span>
+                      <Sparkles className="ml-0 h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </Card>
@@ -213,4 +234,3 @@ export default function DashboardTemplatesPage() {
     </div>
   );
 }
-

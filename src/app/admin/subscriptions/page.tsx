@@ -3,7 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { AdminHeader } from "@/components/layout/admin-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle2, TrendingUp, Sparkles, DollarSign } from "lucide-react";
+import {
+  CreditCard,
+  Sparkles,
+  DollarSign,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +27,8 @@ export default async function AdminSubscriptionsPage() {
   ]);
 
   const estimatedMRR = proUsers * 10;
+  const conversionRate =
+    totalUsers > 0 ? ((proUsers / totalUsers) * 100).toFixed(1) : "0";
 
   return (
     <div>
@@ -29,87 +37,198 @@ export default async function AdminSubscriptionsPage() {
         description="Monitor Free vs Pro creator tier conversion, MRR estimates, and Stripe customer linkages."
       />
 
-      <div className="p-6 sm:p-8 space-y-8 max-w-6xl">
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between text-zinc-500 mb-2">
-              <span className="text-xs font-semibold">Active Pro Creators</span>
-              <Sparkles className="h-4 w-4 text-emerald-500" />
+      <div className="mx-auto max-w-6xl space-y-5 p-6 sm:space-y-6 sm:p-8">
+        {/* KPI summary cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="card-lift relative overflow-hidden p-5">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"
+            />
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+                Active pro creators
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/15 to-emerald-500/[0.03] text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="h-4 w-4" />
+              </span>
             </div>
-            <div className="text-3xl font-extrabold text-zinc-900 dark:text-white">
+            <p className="mt-3 font-heading text-3xl font-extrabold leading-none tracking-[-0.04em] text-foreground">
               {proUsers.toLocaleString()}
-            </div>
-            <p className="mt-1 text-xs text-emerald-600 font-semibold">
-              {totalUsers > 0 ? ((proUsers / totalUsers) * 100).toFixed(1) : 0}% Conversion
+            </p>
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <TrendingUp className="h-3.5 w-3.5" />
+              {conversionRate}% conversion
             </p>
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between text-zinc-500 mb-2">
-              <span className="text-xs font-semibold">Starter Free Creators</span>
-              <CreditCard className="h-4 w-4 text-sky-500" />
+          <Card className="card-lift relative overflow-hidden p-5">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"
+            />
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+                Starter free creators
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-500/20 bg-gradient-to-b from-cyan-500/15 to-cyan-500/[0.03] text-cyan-600 dark:text-cyan-400">
+                <Users className="h-4 w-4" />
+              </span>
             </div>
-            <div className="text-3xl font-extrabold text-zinc-900 dark:text-white">
+            <p className="mt-3 font-heading text-3xl font-extrabold leading-none tracking-[-0.04em] text-foreground">
               {freeUsers.toLocaleString()}
-            </div>
-            <p className="mt-1 text-xs text-zinc-400">Potential upsell pool</p>
+            </p>
+            <p className="mt-2 text-[11px] text-text-secondary">
+              Potential upsell pool
+            </p>
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between text-zinc-500 mb-2">
-              <span className="text-xs font-semibold">Estimated Monthly Run-Rate</span>
-              <DollarSign className="h-4 w-4 text-purple-500" />
+          <Card className="card-lift relative overflow-hidden p-5">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent"
+            />
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+                Estimated monthly run-rate
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-violet-500/20 bg-gradient-to-b from-violet-500/15 to-violet-500/[0.03] text-violet-600 dark:text-violet-300">
+                <DollarSign className="h-4 w-4" />
+              </span>
             </div>
-            <div className="text-3xl font-extrabold text-zinc-900 dark:text-white">
+            <p className="mt-3 font-heading text-3xl font-extrabold leading-none tracking-[-0.04em] text-foreground">
               ${estimatedMRR.toLocaleString()}
-            </div>
-            <p className="mt-1 text-xs text-purple-600 font-semibold">Based on \$10/mo</p>
+            </p>
+            <p className="mt-2 text-[11px] text-text-secondary">
+              Based on $10/mo per PRO creator
+            </p>
           </Card>
         </div>
 
-        {/* Pro Subscriptions Table */}
-        <Card className="p-6">
-          <h3 className="font-bold text-base text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-emerald-500" />
-            <span>Active Pro Subscriptions</span>
-          </h3>
+        {/* Conversion bar */}
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-heading text-sm font-bold tracking-[-0.01em] text-foreground">
+                Free → PRO conversion
+              </h2>
+              <p className="mt-0.5 text-[11px] text-text-secondary">
+                Share of all {totalUsers.toLocaleString()} creator accounts on the
+                PRO tier
+              </p>
+            </div>
+            <span className="font-heading text-lg font-extrabold tracking-[-0.03em] text-emerald-700 dark:text-emerald-300">
+              {conversionRate}%
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-valuenow={Number(conversionRate)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="PRO conversion rate"
+            className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/[0.06]"
+          >
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-glow-sm transition-all duration-500"
+              style={{ width: `${Math.min(100, Number(conversionRate))}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[10.5px] text-text-secondary">
+            <span className="font-semibold text-foreground">
+              {proUsers.toLocaleString()} PRO
+            </span>
+            <span>{freeUsers.toLocaleString()} FREE</span>
+          </div>
+        </Card>
+
+        {/* PRO subscriptions table */}
+        <Card className="overflow-hidden p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-4 dark:border-white/[0.08] sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/15 to-emerald-500/[0.03] text-emerald-600 dark:text-emerald-400">
+                <CreditCard className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate font-heading text-sm font-bold tracking-[-0.01em] text-foreground">
+                  Active PRO subscriptions
+                </h2>
+                <p className="truncate text-[11px] text-text-secondary">
+                  Stripe-linked creator billing records
+                </p>
+              </div>
+            </div>
+            <Badge variant="pro" className="shrink-0">
+              {usersWithSubs.length} subscribers
+            </Badge>
+          </div>
 
           {usersWithSubs.length === 0 ? (
-            <p className="text-xs text-zinc-500 py-6 text-center">
-              No active PRO subscribers recorded in the database yet.
-            </p>
+            <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-200/80 bg-zinc-50 text-zinc-400 dark:border-white/[0.08] dark:bg-white/[0.03]">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              <p className="font-heading text-sm font-bold text-foreground">
+                No PRO subscribers yet
+              </p>
+              <p className="max-w-sm text-xs leading-relaxed text-text-secondary">
+                No active PRO subscribers are recorded in the database.
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-50 dark:bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="py-3 px-4">User</th>
-                    <th className="py-3 px-4">Profile</th>
-                    <th className="py-3 px-4">Plan Status</th>
-                    <th className="py-3 px-4">Stripe Ref</th>
-                    <th className="py-3 px-4">Subscribed Date</th>
+                <thead>
+                  <tr className="border-b border-zinc-200/80 bg-surface/60 dark:border-white/[0.08] dark:bg-white/[0.02]">
+                    {[
+                      "User",
+                      "Profile",
+                      "Plan Status",
+                      "Stripe Ref",
+                      "Subscribed Date",
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="whitespace-nowrap px-4 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary"
+                      >
+                        {heading}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
                   {usersWithSubs.map((u) => (
-                    <tr key={u.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40">
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-zinc-900 dark:text-white">
-                          {u.name || "Creator"}
+                    <tr
+                      key={u.id}
+                      className="transition-colors hover:bg-emerald-500/[0.03] dark:hover:bg-white/[0.025]"
+                    >
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-orange-400 text-[10px] font-extrabold uppercase text-amber-950 ring-1 ring-amber-500/20">
+                            {(u.name || u.email).slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-bold text-foreground">
+                              {u.name || "Creator"}
+                            </div>
+                            <div className="truncate text-[10.5px] text-text-secondary">
+                              {u.email}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-zinc-400 text-[11px]">{u.email}</div>
                       </td>
-                      <td className="py-3 px-4 font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <td className="px-4 py-3.5 font-mono text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                         /{u.profile?.username || "—"}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3.5">
                         <Badge variant="pro">PRO ACTIVE</Badge>
                       </td>
-                      <td className="py-3 px-4 text-zinc-400 font-mono text-[11px]">
-                        {u.subscription?.stripeCustomerId || "manual_seed_grant"}
+                      <td className="max-w-[14rem] px-4 py-3.5">
+                        <span className="block truncate font-mono text-[10.5px] text-text-secondary">
+                          {u.subscription?.stripeCustomerId || "manual_seed_grant"}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 text-zinc-400 font-mono text-[11px]">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[10.5px] text-text-secondary">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -123,4 +242,3 @@ export default async function AdminSubscriptionsPage() {
     </div>
   );
 }
-

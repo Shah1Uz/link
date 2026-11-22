@@ -30,15 +30,16 @@ export function LanguageToggle({ className }: { className?: string }) {
     <div className={`relative inline-block ${className || ""}`} ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        className="flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200/80 bg-white/70 px-2.5 text-[11px] font-bold uppercase tracking-wider text-foreground shadow-xs backdrop-blur-sm transition-colors hover:border-zinc-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-white/20 dark:hover:bg-white/[0.06]"
         aria-label="Change language"
+        aria-expanded={open}
       >
         <Globe className="h-3.5 w-3.5 text-emerald-500" />
-        <span className="uppercase font-semibold tracking-wider">{locale}</span>
+        <span>{locale}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1.5 w-36 rounded-2xl border border-border bg-popover p-1.5 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-2xl border border-zinc-200/80 bg-white/95 p-1.5 shadow-lift backdrop-blur-xl animate-in fade-in zoom-in-95 dark:border-white/10 dark:bg-[#0d0f15]/95">
           {languages.map((lang) => (
             <button
               key={lang.code}
@@ -46,7 +47,11 @@ export function LanguageToggle({ className }: { className?: string }) {
                 setLocale(lang.code);
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs text-foreground hover:bg-surface font-medium transition-colors"
+              className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors ${
+                locale === lang.code
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  : "text-foreground hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.06]"
+              }`}
             >
               <span className="flex items-center gap-2">
                 <span>{lang.flag}</span>
@@ -60,4 +65,3 @@ export function LanguageToggle({ className }: { className?: string }) {
     </div>
   );
 }
-

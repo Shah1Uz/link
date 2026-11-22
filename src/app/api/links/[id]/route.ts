@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { linkSchema } from "@/lib/validations";
-import { detectPlatformFromUrl } from "@/lib/utils";
+import { detectPlatformFromUrl, formatUrlForHref } from "@/lib/utils";
 
 // PATCH update link
 export async function PATCH(
@@ -29,8 +30,11 @@ export async function PATCH(
     const validated = linkSchema.partial().parse(body);
 
     const updateData: any = { ...validated };
-    if (validated.url && !validated.icon) {
-      updateData.icon = detectPlatformFromUrl(validated.url);
+    if (validated.url) {
+      if (!validated.icon) {
+        updateData.icon = detectPlatformFromUrl(validated.url);
+      }
+      updateData.url = formatUrlForHref(validated.url, updateData.icon || validated.icon);
     }
     if (validated.scheduledStart !== undefined) {
       updateData.scheduledStart = validated.scheduledStart ? new Date(validated.scheduledStart) : null;
@@ -46,6 +50,10 @@ export async function PATCH(
 
     return NextResponse.json({ link: updatedLink });
   } catch (error: any) {
+    if (error instanceof ZodError) {
+      const msg = error.issues.map((i) => i.message).join(". ");
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
     return NextResponse.json({ error: error.message || "Failed to update link" }, { status: 400 });
   }
 }

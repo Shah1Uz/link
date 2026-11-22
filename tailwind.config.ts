@@ -10,9 +10,13 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1.25rem",
+        sm: "1.5rem",
+        lg: "2rem",
+      },
       screens: {
-        "2xl": "1400px",
+        "2xl": "1360px",
       },
     },
     extend: {
@@ -69,11 +73,60 @@ const config: Config = {
           900: "#14532d",
           950: "#052e16",
         },
+        aurora: {
+          emerald: "#10b981",
+          teal: "#14b8a6",
+          cyan: "#06b6d4",
+          violet: "#8b5cf6",
+          rose: "#f43f5e",
+        },
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "var(--font-inter)", "ui-sans-serif", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 6px)",
+        "4xl": "2rem",
+      },
+      transitionTimingFunction: {
+        "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "out-soft": "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(9 11 17 / 0.04)",
+        "2xs": "0 1px 1px 0 rgb(9 11 17 / 0.03)",
+        soft: "0 2px 8px -2px rgb(9 11 17 / 0.06), 0 12px 32px -12px rgb(9 11 17 / 0.08)",
+        lift: "0 8px 20px -8px rgb(9 11 17 / 0.12), 0 28px 60px -28px rgb(9 11 17 / 0.22)",
+        panel:
+          "inset 0 1px 0 0 rgb(255 255 255 / 0.6), 0 24px 64px -32px rgb(9 11 17 / 0.22)",
+        glow: "0 0 0 1px rgb(16 185 129 / 0.18), 0 12px 40px -12px rgb(16 185 129 / 0.45)",
+        "glow-sm": "0 0 24px -6px rgb(16 185 129 / 0.5)",
+      },
+      dropShadow: {
+        xs: "0 1px 1px rgb(9 11 17 / 0.12)",
+        glow: "0 0 12px rgb(16 185 129 / 0.45)",
+      },
+      scale: {
+        98: "0.98",
+        102: "1.02",
+        115: "1.15",
+      },
+      spacing: {
+        13: "3.25rem",
+        18: "4.5rem",
+        22: "5.5rem",
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
+      backgroundImage: {
+        "grid-faint":
+          "linear-gradient(to right, hsl(var(--border) / 0.7) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.7) 1px, transparent 1px)",
+        "shine":
+          "linear-gradient(110deg, transparent 20%, hsl(0 0% 100% / 0.35) 45%, transparent 70%)",
       },
       keyframes: {
         "accordion-down": {
@@ -92,12 +145,52 @@ const config: Config = {
           "0%, 100%": { opacity: "0.6", transform: "scale(1)" },
           "50%": { opacity: "1", transform: "scale(1.05)" },
         },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "zoom-in-soft": {
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(40px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        aurora: {
+          "0%, 100%": { transform: "translate3d(-2%, 0, 0) scale(1)" },
+          "50%": { transform: "translate3d(2%, -2%, 0) scale(1.06)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+        "spin-slow": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        float: "float 4s ease-in-out infinite",
+        float: "float 5s ease-in-out infinite",
         glow: "pulseGlow 3s ease-in-out infinite",
+        "fade-up": "fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "fade-in": "fade-in 0.4s ease-out both",
+        "zoom-in-soft": "zoom-in-soft 0.35s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "slide-up": "slide-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
+        aurora: "aurora 16s ease-in-out infinite",
+        shimmer: "shimmer 2.2s linear infinite",
+        marquee: "marquee 28s linear infinite",
+        "spin-slow": "spin-slow 18s linear infinite",
       },
     },
   },
@@ -105,4 +198,3 @@ const config: Config = {
 };
 
 export default config;
-

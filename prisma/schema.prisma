@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,10 +17,14 @@ model User {
   email            String         @unique
   name             String?
   avatar           String?
+  passwordHash     String?
   role             String         @default("USER") // USER, ADMIN
   isSuspended      Boolean        @default(false)
   isBanned         Boolean        @default(false)
   subscriptionTier String         @default("FREE") // FREE, PRO
+  notifyClickMilestones Boolean   @default(true)
+  notifyWeeklyDigest    Boolean   @default(true)
+  notifyProductNews     Boolean   @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -33,10 +37,14 @@ model User {
   templatePurchases TemplatePurchase[]
   templateReviews   TemplateReview[]
   supportTickets    SupportTicket[]
+  contactInquiries  ContactInquiry[]
   ownedTeams        Team[]             @relation("TeamOwner")
   teamMemberships   TeamMember[]       @relation("TeamMemberUser")
   apiKeys           APIKey[]
   webhookEndpoints  WebhookEndpoint[]
+  aiUsage           AIUsage?
+  aiGenerations     AIGeneration[]
+  aiSettings        AISettings?
 }
 
 model ActivityLog {
@@ -87,6 +95,28 @@ model Profile {
   orders          Order[]
   analyticsEvents AnalyticsEvent[]
   reports         Report[]
+
+  // Newsletter / Subscription Block Configuration (Phase 03)
+  newsletterEnabled        Boolean   @default(false)
+  newsletterTitle          String    @default("Join my Newsletter")
+  newsletterDescription    String?   @default("Get exclusive updates, insights, and new project releases straight to your inbox.")
+  newsletterButtonText     String    @default("Subscribe")
+  newsletterPlaceholder    String    @default("Enter your email address...")
+  newsletterSuccessMessage String    @default("Thanks for subscribing! Check your email to confirm your subscription.")
+  newsletterLayout         String    @default("card") // card, minimal, inline, hero
+  subscribers              Subscriber[]
+
+  // Appointment Booking Configuration (Phase 04)
+  bookingEnabled           Boolean   @default(false)
+  bookingTitle             String    @default("Book an Appointment")
+  bookingDescription       String?   @default("Schedule a 1-on-1 consultation or video meeting with me.")
+  bookingTimezone          String    @default("UTC")
+  appointmentTypes         AppointmentType[]
+  availabilityRules        AvailabilityRule[]
+  bookings                 Booking[]
+
+  // Store / Shop Configuration
+  storeEnabled             Boolean   @default(true)
 
   @@index([username])
 }
@@ -144,6 +174,7 @@ model Theme {
   backgroundType     String   @default("color")
   backgroundGradient String?
   backgroundImage    String?
+  backgroundVideo    String?
   buttonStyle        String   @default("rounded")
   buttonColor        String   @default("#ffffff")
   buttonTextColor    String   @default("#0f172a")
@@ -155,6 +186,16 @@ model Theme {
   accentColor        String   @default("#22c55e")
   animationsEnabled  Boolean  @default(true)
   showBranding       Boolean  @default(true)
+
+  // Spotify Profile Music Integration
+  spotifyMusicEnabled  Boolean  @default(false)
+  spotifyTrackUrl      String?
+  spotifyTrackTitle    String?
+  spotifyTrackArtist   String?
+  spotifyTrackImage    String?
+  spotifyMusicLayout   String   @default("floating") // "floating" | "card"
+  spotifyMusicAutoplay Boolean  @default(false)
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -184,18 +225,58 @@ model SocialAccount {
 }
 
 model CustomDomain {
-  id         String   @id @default(cuid())
-  profileId  String
-  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  domain     String   @unique
-  status     String   @default("PENDING") // PENDING, ACTIVE, FAILED
-  sslStatus  String   @default("PENDING")
-  dnsRecords String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String               @id @default(cuid())
+  profileId       String
+  profile         Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  domain          String               @unique // Normalized lowercase (e.g. "links.example.com")
+  status          String               @default("PENDING") // PENDING, VERIFYING, VERIFIED, PROVISIONING_SSL, ACTIVE, FAILED, SUSPENDED
+  sslStatus       String               @default("PENDING") // PENDING, ISSUING, ACTIVE, FAILED
+  cnameTarget     String               @default("cname.biospace.com")
+  verificationTxt String               @default("") // Unique verification string: "biospace-verify-" + random hex
+  verifiedAt      DateTime?
+  lastCheckedAt   DateTime?
+  errorMessage    String?
+  retryCount      Int                  @default(0)
+  isApex          Boolean              @default(false)
+  dnsRecords      String?              // Cached DNS record snapshot
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  verifications   DomainVerification[]
+  events          DomainEvent[]
 
   @@index([profileId])
   @@index([domain])
+  @@index([status])
+}
+
+model DomainVerification {
+  id          String       @id @default(cuid())
+  domainId    String
+  domain      CustomDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  type        String       @default("DNS_TXT") // DNS_TXT, DNS_CNAME
+  recordName  String       // e.g. "_biospace" or "@"
+  recordValue String
+  status      String       @default("PENDING") // PENDING, SUCCESS, FAILED
+  attemptedAt DateTime     @default(now())
+  expiresAt   DateTime
+  responseLog String?
+
+  @@index([domainId])
+  @@index([status])
+}
+
+model DomainEvent {
+  id          String       @id @default(cuid())
+  domainId    String
+  domain      CustomDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  eventType   String       // CREATED, VERIFICATION_ATTEMPT, VERIFIED, SSL_PROVISIONED, ACTIVATED, FAILED, REMOVED, SUSPENDED
+  description String
+  metadata    String?      // JSON stringified metadata
+  createdAt   DateTime     @default(now())
+
+  @@index([domainId])
+  @@index([eventType])
 }
 
 // ==========================================
@@ -408,6 +489,19 @@ model TemplateReview {
 // 6. COMMERCE & MONETIZATION DOMAIN
 // ==========================================
 
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+}
+
 model Product {
   id          String   @id @default(cuid())
   profileId   String
@@ -417,36 +511,70 @@ model Product {
   price       Float
   currency    String   @default("USD")
   imageUrl    String?
-  fileUrl     String?
-  externalUrl String?
+  galleryUrls String?  // JSON array string of additional product images
+  fileUrl     String?  // Download asset or digital course URL
+  externalUrl String?  // External buy or checkout link
+  type        String   @default("DIGITAL_DOWNLOAD") // DIGITAL_DOWNLOAD, EBOOK, COURSE, SERVICE, PHYSICAL, EXTERNAL
+  category    String?  @default("General")
+  categoryId  String?
+  categoryRef ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   isDigital   Boolean  @default(true)
   isEnabled   Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
   position    Int      @default(0)
+  viewsCount  Int      @default(0)
+  clicksCount Int      @default(0)
   salesCount  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   orders      Order[]
+  orderItems  OrderItem[]
 
   @@index([profileId])
+  @@index([categoryId])
+  @@index([type])
 }
 
 model Order {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
+  orderNumber     String?     @unique
   profileId       String
-  profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile         Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   productId       String
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   customerEmail   String
   customerName    String?
   amount          Float
-  currency        String   @default("USD")
-  status          String   @default("COMPLETED") // PENDING, COMPLETED, REFUNDED
+  refundedAmount  Float?      @default(0)
+  currency        String      @default("USD")
+  status          String      @default("COMPLETED") // PENDING, COMPLETED, REFUNDED, FAILED
   stripeSessionId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  paymentIntentId String?
+  metadata        String?     // JSON metadata (e.g. shipping or custom notes)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
 
   @@index([profileId])
+  @@index([productId])
+  @@index([status])
+  @@index([stripeSessionId])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  price     Float
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
   @@index([productId])
 }
 
@@ -457,10 +585,12 @@ model PaymentEvent {
   amount        Float?
   currency      String?
   payload       String
-  status        String   @default("PROCESSED")
+  status        String   @default("PROCESSED") // PROCESSED, FAILED, DUPLICATE
+  orderId       String?
   createdAt     DateTime @default(now())
 
   @@index([eventType])
+  @@index([orderId])
 }
 
 model Subscription {
@@ -587,3 +717,255 @@ model WebhookEndpoint {
 
   @@index([userId])
 }
+
+// ==========================================
+// 12. AI CREATOR ASSISTANT DOMAIN
+// ==========================================
+
+model AIUsage {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period          String   // Format: "YYYY-MM" e.g. "2026-11"
+  generationCount Int      @default(0)
+  tokenCount      Int      @default(0)
+  estimatedCost   Float    @default(0.0)
+  lastUsedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([period])
+}
+
+model AIGeneration {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // BIO, HEADLINE, DESCRIPTION, LINK_TITLE, CONTENT_IMPROVE, THEME_RECOMMEND, PROFILE_OPTIMIZE, CTA
+  prompt      String?
+  inputJson   String   // Stored JSON parameters
+  outputJson  String   // Stored JSON response / variations
+  tokensUsed  Int      @default(0)
+  costEst     Float    @default(0.0)
+  provider    String   @default("gemini")
+  model       String   @default("gemini-2.5-flash")
+  status      String   @default("SUCCESS") // SUCCESS, FAILED
+  isApplied   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AISettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredLanguage String   @default("en") // en, uz, ru, es, etc.
+  preferredTone     String   @default("creative") // professional, playful, minimalist, poetic, energetic
+  defaultProvider   String   @default("gemini")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ==========================================
+// 12. EMAIL MARKETING & SUBSCRIBERS DOMAIN (PHASE 03)
+// ==========================================
+
+model Subscriber {
+  id                 String                  @id @default(cuid())
+  profileId          String
+  profile            Profile                 @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  email              String
+  name               String?
+  status             String                  @default("PENDING") // PENDING, ACTIVE, UNSUBSCRIBED, BOUNCED
+  source             String                  @default("profile_page") // profile_page, checkout, embed
+  subscribedAt       DateTime                @default(now())
+  confirmedAt        DateTime?
+  unsubscribedAt     DateTime?
+  unsubscribeToken   String                  @unique @default(cuid())
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  consents           SubscriptionConsent[]
+  verificationTokens EmailVerificationToken[]
+  deliveryLogs       EmailDeliveryLog[]
+
+  @@unique([profileId, email])
+  @@index([profileId])
+  @@index([email])
+  @@index([status])
+  @@index([unsubscribeToken])
+}
+
+model SubscriptionConsent {
+  id           String     @id @default(cuid())
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  consentType  String     @default("EMAIL_MARKETING") // EMAIL_MARKETING, PRODUCT_UPDATES
+  consentedAt  DateTime   @default(now())
+  source       String     @default("profile_page")
+  ipAddress    String?
+  userAgent    String?
+  consentText  String     @default("I agree to receive email updates and newsletters.")
+  createdAt    DateTime   @default(now())
+
+  @@index([subscriberId])
+}
+
+model EmailVerificationToken {
+  id           String     @id @default(cuid())
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  token        String     @unique @default(cuid())
+  type         String     @default("CONFIRMATION") // CONFIRMATION, LOGIN
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([subscriberId])
+  @@index([token])
+}
+
+model EmailDeliveryLog {
+  id             String      @id @default(cuid())
+  subscriberId   String?
+  subscriber     Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+  recipientEmail String
+  subject        String
+  template       String      // CONFIRMATION, WELCOME, NOTIFICATION, UNSUBSCRIBE
+  provider       String      @default("biospace_mail") // resend, smtp, biospace_mail
+  status         String      @default("SENT") // SENT, DELIVERED, FAILED, SIMULATED
+  error          String?
+  messageId      String?
+  createdAt      DateTime    @default(now())
+
+  @@index([recipientEmail])
+  @@index([template])
+  @@index([status])
+}
+
+// ==========================================
+// 14. APPOINTMENT BOOKING DOMAIN (Phase 04)
+// ==========================================
+
+model AppointmentType {
+  id           String    @id @default(cuid())
+  profileId    String
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  category     String    @default("CONSULTATION") // CONSULTATION, MEETING, COACHING, PERSONAL, SERVICE
+  duration     Int       @default(30) // Duration in minutes: 15, 30, 45, 60, 90, 120
+  bufferTime   Int       @default(10) // Buffer time between slots in minutes
+  price        Float     @default(0) // 0 for free
+  currency     String    @default("USD")
+  locationType String    @default("GOOGLE_MEET") // GOOGLE_MEET, ZOOM, CUSTOM_URL, IN_PERSON, PHONE
+  locationUrl  String?
+  color        String?   @default("#3b82f6") // Accent color for cards/calendar
+  isActive     Boolean   @default(true)
+  position     Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings Booking[]
+
+  @@index([profileId])
+  @@index([isActive])
+}
+
+model AvailabilityRule {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime String   @default("09:00") // 24-hour format "HH:mm"
+  endTime   String   @default("17:00") // 24-hour format "HH:mm"
+  isEnabled Boolean  @default(true)
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, dayOfWeek, startTime, endTime])
+  @@index([profileId])
+  @@index([dayOfWeek])
+}
+
+model Booking {
+  id                 String               @id @default(cuid())
+  profileId          String
+  profile            Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  appointmentTypeId  String
+  appointmentType    AppointmentType      @relation(fields: [appointmentTypeId], references: [id], onDelete: Restrict)
+  customerName       String
+  customerEmail      String
+  customerPhone      String?
+  customerNotes      String?
+  startTime          DateTime
+  endTime            DateTime
+  status             String               @default("CONFIRMED") // CONFIRMED, CANCELLED, RESCHEDULED, COMPLETED
+  meetingUrl         String?
+  locationType       String               @default("GOOGLE_MEET")
+  price              Float                @default(0)
+  currency           String               @default("USD")
+  isPaid             Boolean              @default(false)
+  paymentReference   String?
+  cancelToken        String               @unique @default(cuid())
+  rescheduleToken    String               @unique @default(cuid())
+  cancellationReason String?
+  cancelledAt        DateTime?
+  rescheduledFromId  String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  notifications BookingNotification[]
+
+  @@index([profileId])
+  @@index([appointmentTypeId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([status])
+  @@index([cancelToken])
+  @@index([rescheduleToken])
+}
+
+model BookingNotification {
+  id             String   @id @default(cuid())
+  bookingId      String
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type           String   // NEW_BOOKING, CONFIRMATION, CANCELLATION, RESCHEDULED, REMINDER
+  recipientEmail String
+  recipientRole  String   @default("ATTENDEE") // CREATOR, ATTENDEE
+  status         String   @default("SENT") // SENT, FAILED, SIMULATED
+  subject        String
+  content        String
+  sentAt         DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([recipientEmail])
+  @@index([type])
+}
+
+model ContactInquiry {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  email     String
+  subject   String
+  message   String
+  category  String   @default("GENERAL")
+  status    String   @default("OPEN")
+  response  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([email])
+  @@index([userId])
+}
+

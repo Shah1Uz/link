@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { linkSchema } from "@/lib/validations";
-import { detectPlatformFromUrl } from "@/lib/utils";
+import { detectPlatformFromUrl, formatUrlForHref } from "@/lib/utils";
 
 // GET all links for current user
 export async function GET() {
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
     const validated = linkSchema.parse(body);
 
     const detectedIcon = validated.icon || detectPlatformFromUrl(validated.url);
+    const sanitizedUrl = formatUrlForHref(validated.url, detectedIcon);
 
     // Get max position
     const lastLink = await prisma.link.findFirst({
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
       data: {
         profileId: profile.id,
         title: validated.title,
-        url: validated.url,
+        url: sanitizedUrl,
         description: validated.description || null,
         icon: detectedIcon,
         thumbnail: validated.thumbnail || null,
@@ -81,6 +83,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ link: newLink }, { status: 201 });
   } catch (error: any) {
     console.error("Create link error:", error);
+    if (error instanceof ZodError) {
+      const msg = error.issues.map((i) => i.message).join(". ");
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
     return NextResponse.json({ error: error.message || "Failed to create link" }, { status: 400 });
   }
 }

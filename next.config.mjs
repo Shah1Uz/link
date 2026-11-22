@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   images: {
     remotePatterns: [
       {
@@ -13,6 +13,12 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "5mb",
     },
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.output.chunkLoadTimeout = 300000;
+    }
+    return config;
   },
 };
 

@@ -27,20 +27,19 @@ export function Switch({
       disabled={disabled}
       onClick={() => !disabled && onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent p-0.5 transition-colors duration-300 ease-out-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
         checked
-          ? "bg-emerald-500 dark:bg-emerald-500"
-          : "bg-zinc-200 dark:bg-zinc-700",
+          ? "bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-[0_4px_12px_-4px_rgba(16,185,129,0.8)]"
+          : "bg-zinc-200 dark:bg-white/[0.12]",
         className
       )}
     >
       <span
         className={cn(
-          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out",
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-[0_1px_3px_rgba(9,11,17,0.25)] ring-0 transition duration-300 ease-out-soft",
           checked ? "translate-x-5" : "translate-x-0"
         )}
       />
     </button>
   );
 }
-
