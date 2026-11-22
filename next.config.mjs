@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  env: {
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+      "pk_test_bGl2ZS1oYWxpYnV0LTYzMDUuY2xlcmsuYWNjb3VudHMuZGV2JA",
+  },
   images: {
     remotePatterns: [
       {

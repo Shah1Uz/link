@@ -46,6 +46,10 @@ export const metadata: Metadata = {
   },
 };
 
+const clerkPublishableKey =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  "pk_test_bGl2ZS1oYWxpYnV0LTYzMDUuY2xlcmsuYWNjb3VudHMuZGV2JA";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,6 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider
+      publishableKey={clerkPublishableKey}
       appearance={{
         baseTheme: dark,
         variables: {
