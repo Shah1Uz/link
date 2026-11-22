@@ -15,12 +15,8 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
-  Play,
   CheckCircle2,
-  HelpCircle,
   ExternalLink,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TOUR_STORAGE_KEY, openPlatformTour } from "@/lib/tour-bus";
@@ -28,190 +24,6 @@ import { useI18n } from "@/components/i18n-provider";
 
 export { TOUR_STORAGE_KEY, openPlatformTour };
 
-interface TourStep {
-  id: string;
-  badge: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  features: string[];
-  icon: React.ElementType;
-  gradient: string;
-  actionHref?: string;
-  actionLabel?: string;
-  previewType:
-  | "welcome"
-  | "links"
-  | "appearance"
-  | "fonts"
-  | "stickers"
-  | "music"
-  | "preview"
-  | "store"
-  | "finish";
-}
-
-const TOUR_STEPS: TourStep[] = [
-  {
-    id: "welcome",
-    badge: "Xush kelibsiz",
-    title: "BioSpace — Yangi avlod Link-in-Bio platformasi",
-    subtitle: "Barcha ijodingiz va havolalaringiz yagona sahifada",
-    description:
-      "BioSpace sizga barcha ijtimoiy tarmoqlaringiz, videolaringiz, musiqalaringiz va mahsulotlaringizni bitta chiroyli, yuqori konversiyali shaxsiy sahifada jamlash imkonini beradi.",
-    features: [
-      "Shaxsiy bio link: biospace.com/@username",
-      "Mobil va kompyuter uchun 100% moslashuvchan",
-      "Yuqori tezlik va zamonaviy dizayn",
-    ],
-    icon: Sparkles,
-    gradient: "from-emerald-500 via-teal-500 to-cyan-500",
-    actionHref: "/dashboard/bio",
-    actionLabel: "Bio sahifamni ko'rish",
-    previewType: "welcome",
-  },
-  {
-    id: "links",
-    badge: "1-bo'lim",
-    title: "Havolalar va Jonli Media Studiyasi",
-    subtitle: "YouTube, TikTok va Instagram postlarini jonli ko'rsating",
-    description:
-      "Oddiy havola tugmalaridan tashqari to'g'ridan-to'g'ri profilingizda ishlaydigan YouTube video pleyeri, Instagram va TikTok postlarini biriktirishingiz mumkin.",
-    features: [
-      "YouTube videolarini to'g'ridan-to'g'ri pleyerda ko'rsatish",
-      "Instagram va TikTok postlarini embed qilish",
-      "Havolalarni belgilash (Pin qilish) va guruhlash",
-    ],
-    icon: Link2,
-    gradient: "from-blue-500 via-indigo-500 to-violet-500",
-    actionHref: "/dashboard/links",
-    actionLabel: "Havolalar bo'limiga o'tish",
-    previewType: "links",
-  },
-  {
-    id: "appearance",
-    badge: "2-bo'lim",
-    title: "Tashqi ko'rinish va Video Fonlar",
-    subtitle: "20+ tayyor dizaynlar, gradientlar va MP4 video fonlar",
-    description:
-      "Profilingiz uchun 20 dan ortiq tayyor premium temalardan birini tanlang yoki o'z uslubingizni yarating: fon ranglari, gradientlar, fon rasmlari va harakatlanuvchi video fonlar!",
-    features: [
-      "20+ tayyor professional temalar (Obsidian, Cyberpunk, Neo Glass)",
-      "Maxsus MP4 video fonlar va fon rasmlari yuklash",
-      "Hero kartochka uchun Blur, Fade va Darken effektlari",
-    ],
-    icon: Palette,
-    gradient: "from-pink-500 via-rose-500 to-amber-500",
-    actionHref: "/dashboard/appearance",
-    actionLabel: "Dizaynni tahrirlash",
-    previewType: "appearance",
-  },
-  {
-    id: "fonts",
-    badge: "3-bo'lim",
-    title: "Shaxsiy NIK va 30+ Google Shriftlar",
-    subtitle: "Faqat sizning ismingiz / nikingiz uchun maxsus tipografika",
-    description:
-      "Profilingizdagi Display Name (NIK) uchun 30 dan ortiq mashhur Google shriftlaridan birini tanlang. Shrift faqat sizning ismingizga taalluqli bo'lib, o'zgacha jilo bag'ishlaydi.",
-    features: [
-      "30+ Google Fonts: Caveat, Bebas Neue, Audiowide, Syne, Pacifico...",
-      "Shrift faqat NIK uchun qo'llanadi, matnlarni buzmaydi",
-      "Jonli preview-da darhol ko'rinadi",
-    ],
-    icon: Type,
-    gradient: "from-amber-500 via-orange-500 to-red-500",
-    actionHref: "/dashboard/appearance",
-    actionLabel: "Shriftlarni tanlash",
-    previewType: "fonts",
-  },
-  {
-    id: "stickers",
-    badge: "4-bo'lim",
-    title: "Stikerlar Studiyasi (Erkin sudrab joylash)",
-    subtitle: "3D & neon stikerlarni telefon ekraniga erkin qo'ying",
-    description:
-      "Profilingizga zamonaviy 3D stikerlar qo'shing. Ularni telefon ekranining istalgan joyiga erkin sudrab joylashtirishingiz (Free Drag) yoki burchaklarga biriktirishingiz mumkin.",
-    features: [
-      "Neon va 3D stikerlar to'plami (Yulduz, Olov, Raketa, Barmoq)",
-      "Erkin sudrab joylashtirish (X va Y koordinatalar)",
-      "Burchaklarga avtomatik qadash (Snap presets)",
-    ],
-    icon: Smile,
-    gradient: "from-yellow-400 via-amber-500 to-orange-500",
-    actionHref: "/dashboard/appearance",
-    actionLabel: "Stikerlarni sozlash",
-    previewType: "stickers",
-  },
-  {
-    id: "music",
-    badge: "5-bo'lim",
-    title: "Profil Musiqasi va Spotify Studio",
-    subtitle: "Mehmonlaringiz uchun orqa fon musiqasi yoki sevimli trek",
-    description:
-      "Spotify-dan sevimli trekingiz yoki pleylistingizni qidirib toping va profilingizga ulang. Mehmonlar sahifangizga kirganida suzuvchi pleyer orqali musiqa tinglashi mumkin.",
-    features: [
-      "Spotify API orqali millionlab qo'shiqlarni qidirish",
-      "Suzuvchi ixcham (Floating) yoki keng pleyer rejimi",
-      "Avtomatik fon musiqasi (Audio soundtrack)",
-    ],
-    icon: Music,
-    gradient: "from-emerald-400 via-green-500 to-teal-500",
-    actionHref: "/dashboard/music",
-    actionLabel: "Musiqa studiyasiga o'tish",
-    previewType: "music",
-  },
-  {
-    id: "preview",
-    badge: "6-bo'lim",
-    title: "Jonli Telefon Mockup (Real vaqtda ko'rish)",
-    subtitle: "Har bir o'zgarishni darhol telefonda ko'rib boring",
-    description:
-      "Kiritgan har bir matn, rang, havola yoki stikeringiz o'ng tomondagi jonli telefonda bir zumda o'zgaradi. O'z sahifangizni foydalanuvchi ko'zi bilan nazorat qilasiz.",
-    features: [
-      "Real vaqtda sinxronlanadigan iPhone mockup",
-      "Interaktiv havolalar, video pleyer va stikerlar",
-      "Mobil qurilmalarda ham 'Preview' tugmasi orqali ochiladi",
-    ],
-    icon: Smartphone,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    previewType: "preview",
-  },
-  {
-    id: "store",
-    badge: "7-bo'lim",
-    title: "Raqamli Do'kon, Bron qilish va Tahlillar",
-    subtitle: "Auditoriyangizni mijozlarga aylantiring va daromad qiling",
-    description:
-      "Raqamli mahsulotlar (fayllar, e-kitoblar, kurslar) soting, shaxsiy konsultatsiyalar bron qilish imkoniyatini bering va barcha kliklarni statistikada tahlil qiling.",
-    features: [
-      "Raqamli mahsulotlar savdosi va Stripe to'lovlari",
-      "Konsultatsiyalar va uchrashuvlarni bron qilish (Bookings)",
-      "Batafsil tahlil: tashrif buyuruvchilar, kliklar, geografiya",
-    ],
-    icon: ShoppingBag,
-    gradient: "from-teal-500 via-cyan-500 to-blue-500",
-    actionHref: "/dashboard/analytics",
-    actionLabel: "Statistikani ko'rish",
-    previewType: "store",
-  },
-  {
-    id: "finish",
-    badge: "Tayyor!",
-    title: "Tabriklaymiz! Siz to'liq tayyorsiz",
-    subtitle: "O'z shaxsiy BioSpace havolangizni ulashing",
-    description:
-      "Endi o'z profilingizni to'ldiring, havolalaringizni joylashtiring va shaxsiy linkingizni Instagram, Telegram, TikTok yoki YouTube bio-ingizga qo'ying!",
-    features: [
-      "1 marta yarating — barcha tarmoqlaringizda foydalaning",
-      "Istalgan payt ushbu qo'llanmani tepada 'Qo'llanma' tugmasi bilan qayta ochishingiz mumkin",
-      "Savollar bo'lsa, yordam bo'limi doim xizmatingizda",
-    ],
-    icon: Share2,
-    gradient: "from-emerald-500 via-teal-400 to-cyan-500",
-    actionHref: "/dashboard",
-    actionLabel: "Dashboardga o'tish",
-    previewType: "finish",
-  },
 const STEP_CONFIG = [
   { icon: Sparkles, gradient: "from-emerald-500 via-teal-500 to-cyan-500", actionHref: "/dashboard/bio" },
   { icon: Link2, gradient: "from-blue-500 via-indigo-500 to-violet-500", actionHref: "/dashboard/links" },
@@ -260,32 +72,14 @@ export function InteractiveTourModal() {
     return () => window.removeEventListener("open-biospace-tour", handleOpen);
   }, []);
 
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        closeTour();
-      } else if (e.key === "ArrowRight") {
-        handleNext();
-      } else if (e.key === "ArrowLeft") {
-        handlePrev();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentStep]);
-}, [isOpen, currentStep, tourSteps.length]);
+  const closeTour = () => {
+    setIsOpen(false);
+    if (dontShowAgain) {
+      localStorage.setItem(TOUR_STORAGE_KEY, "true");
+    }
+  };
 
-const closeTour = () => {
-  setIsOpen(false);
-  if (dontShowAgain) {
-    localStorage.setItem(TOUR_STORAGE_KEY, "true");
-  }
-};
-
-const handleNext = () => {
-  if (currentStep < TOUR_STEPS.length - 1) {
+  const handleNext = () => {
     if (currentStep < tourSteps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
@@ -302,10 +96,8 @@ const handleNext = () => {
 
   if (!isOpen) return null;
 
-  const step = TOUR_STEPS[currentStep];
   const step = tourSteps[currentStep] || tourSteps[0];
   const Icon = step.icon;
-  const progressPercent = Math.round(((currentStep + 1) / TOUR_STEPS.length) * 100);
   const progressPercent = Math.round(((currentStep + 1) / tourSteps.length) * 100);
 
   return (
@@ -326,7 +118,6 @@ const handleNext = () => {
                 {step.badge}
               </span>
               <span className="text-xs text-text-secondary ml-2 font-medium">
-                ({currentStep + 1} / {TOUR_STEPS.length})
                 ({currentStep + 1} / {tourSteps.length})
               </span>
             </div>
@@ -336,7 +127,6 @@ const handleNext = () => {
             <button
               type="button"
               onClick={closeTour}
-              aria-label="Yopish"
               aria-label={t.common.close}
               className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-surface/60 text-text-secondary hover:text-foreground hover:bg-foreground/[0.05] transition-colors cursor-pointer"
             >
@@ -394,25 +184,20 @@ const handleNext = () => {
 
           {/* Quick jump step dots */}
           <div className="flex items-center justify-center gap-1.5 flex-wrap">
-            {TOUR_STEPS.map((s, idx) => {
-              {
-                tourSteps.map((s, idx) => {
-                  const active = idx === currentStep;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setCurrentStep(idx)}
-                      className={`h-2 transition-all rounded-full cursor-pointer ${active
-                        ? "w-8 bg-emerald-500"
-                        : "w-2 bg-border hover:bg-text-secondary/50"
-                        }`}
-                      title={`${idx + 1}-qadam: ${s.title}`}
-                      title={`${t.tour.stepPrefix} ${idx + 1}: ${s.title}`}
-                    />
-                  );
-                })
-              }
+            {tourSteps.map((s, idx) => {
+              const active = idx === currentStep;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setCurrentStep(idx)}
+                  className={`h-2 transition-all rounded-full cursor-pointer ${
+                    active ? "w-8 bg-emerald-500" : "w-2 bg-border hover:bg-text-secondary/50"
+                  }`}
+                  title={`${t.tour.stepPrefix} ${idx + 1}: ${s.title}`}
+                />
+              );
+            })}
           </div>
         </div>
 
@@ -426,7 +211,6 @@ const handleNext = () => {
               onChange={(e) => setDontShowAgain(e.target.checked)}
               className="h-3.5 w-3.5 rounded border-border text-emerald-600 focus:ring-emerald-500"
             />
-            <span>Qayta avtomatik ochilmasin</span>
             <span>{t.tour.dontShowAgain}</span>
           </label>
 
@@ -440,7 +224,6 @@ const handleNext = () => {
                 className="gap-1.5 rounded-xl text-xs font-semibold"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
-                <span>Oldingisi</span>
                 <span>{t.common.back}</span>
               </Button>
             )}
@@ -456,7 +239,6 @@ const handleNext = () => {
                   size="sm"
                   className="gap-1.5 rounded-xl text-xs font-semibold border border-border"
                 >
-                  <span>{step.actionLabel || "Bo'limni ochish"}</span>
                   <span>{step.actionLabel || t.sidebar.items.overview}</span>
                   <ExternalLink className="h-3 w-3" />
                 </Button>
@@ -466,10 +248,8 @@ const handleNext = () => {
             <Button
               size="sm"
               onClick={handleNext}
-              className="gap-1.5 rounded-xl text-xs font-semibold px-4 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
               className="gap-1.5 rounded-xl text-xs font-semibold px-4 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm cursor-pointer"
             >
-              <span>{currentStep === TOUR_STEPS.length - 1 ? "Tushunarli, boshlash!" : "Keyingisi"}</span>
               <span>{currentStep === tourSteps.length - 1 ? t.common.finish : t.common.next}</span>
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
