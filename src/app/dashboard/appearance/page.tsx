@@ -36,6 +36,7 @@ import { StickersStudio } from "@/components/dashboard/stickers-studio";
 import { WallpaperStudio, CURATED_WALLPAPERS } from "@/components/dashboard/wallpaper-studio";
 import { TypographyStudio } from "@/components/dashboard/typography-studio";
 import { renderStickerById } from "@/components/shared/sticker-art";
+import { MobileLiveDesignStudio } from "@/components/dashboard/mobile-live-design-studio";
 
 const quickSwatches = [
   "#000000",
@@ -836,7 +837,14 @@ export default function AppearanceEditorPage() {
   const buttonBadgeLabel = currentButtonObj?.label.split(" ")[0] || "Rounded";
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+    <>
+      {/* Mobile Live Design Studio matching Linktree Screenshot 2 */}
+      <div className="block lg:hidden">
+        <MobileLiveDesignStudio />
+      </div>
+
+      {/* Desktop Appearance Studio */}
+      <div className="hidden lg:block mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Top Bar matching reference screenshot */}
       <div className="mb-5 sm:mb-6 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -1791,6 +1799,7 @@ export default function AppearanceEditorPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -4,16 +4,15 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Link2,
+  Plus,
+  Eye,
   Palette,
-  Music,
-  BarChart3,
-  Menu,
   X,
   Sparkles,
   ExternalLink,
   ChevronRight,
   ArrowUpRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/context/dashboard-context";
@@ -22,42 +21,31 @@ import { useI18n } from "@/components/i18n-provider";
 
 export function DashboardMobileNav() {
   const pathname = usePathname();
-  const { profile } = useDashboard();
+  const { profile, links, isMobilePreviewOpen, setIsMobilePreviewOpen } = useDashboard();
   const { t } = useI18n();
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const username = profile?.username || "creator";
 
-  const NAV_TABS = [
-    {
-      href: "/dashboard/links",
-      label: t.sidebar.items.links,
-      icon: Link2,
-      isActive: pathname.startsWith("/dashboard/links") || pathname === "/dashboard",
-    },
-    {
-      href: "/dashboard/appearance",
-      label: t.sidebar.items.appearance,
-      icon: Palette,
-      isActive: pathname.startsWith("/dashboard/appearance"),
-    },
-    {
-      href: "/dashboard/music",
-      label: t.sidebar.items.music,
-      icon: Music,
-      badge: "NEW",
-      isActive: pathname.startsWith("/dashboard/music"),
-    },
-    {
-      href: "/dashboard/analytics",
-      label: t.sidebar.items.analytics,
-      icon: BarChart3,
-      isActive: pathname.startsWith("/dashboard/analytics"),
-    },
-  ];
+  // Hide mobile nav when on appearance page since MobileLiveDesignStudio renders its own 6-tool docked toolbar
+  if (pathname.startsWith("/dashboard/appearance")) {
+    return null;
+  }
+
+  // Calculate dynamic setup completion % (matching Screenshot 1)
+  let score = 20; // base account
+  if (profile?.displayName) score += 15;
+  if (profile?.avatarUrl) score += 20;
+  if (profile?.bio) score += 20;
+  if (links && links.length > 0) score += 25;
+  const setupPercent = Math.min(score, 100);
+
+  const radius = 19;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (circumference * setupPercent) / 100;
 
   return (
     <>
-      {/* Mobile Drawer when "Menu / More" is tapped in bottom bar */}
+      {/* Mobile Drawer when Menu / More is tapped */}
       {menuDrawerOpen && (
         <div className="fixed inset-0 z-[70] lg:hidden">
           <div
@@ -94,7 +82,7 @@ export function DashboardMobileNav() {
               />
             </div>
 
-            {/* Bottom quick action */}
+            {/* Bottom quick actions */}
             <div className="shrink-0 space-y-2 border-t border-border/70 p-3 bg-surface/30">
               <a
                 href={`/${username}`}
@@ -124,55 +112,104 @@ export function DashboardMobileNav() {
         </div>
       )}
 
-      {/* Floating Bottom Nav Bar for Mobile Screens */}
-      <nav
-        aria-label="Mobile Bottom Navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 backdrop-blur-xl px-2 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] lg:hidden"
-      >
-        <div className="mx-auto flex max-w-md items-center justify-between gap-1">
-          {NAV_TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={cn(
-                  "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[10px] font-bold transition-all duration-150 active:scale-95",
-                  tab.isActive
-                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/[0.12]"
-                    : "text-text-secondary hover:text-foreground hover:bg-surface/50"
-                )}
-              >
-                <div className="relative">
-                  <Icon className="h-4 w-4" strokeWidth={tab.isActive ? 2.5 : 2} />
-                  {tab.badge && (
-                    <span className="absolute -top-1 -right-2 flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                    </span>
-                  )}
-                </div>
-                <span className="truncate">{tab.label}</span>
-              </Link>
-            );
-          })}
-
-          {/* More / Menu Drawer Toggle */}
-          <button
-            type="button"
-            onClick={() => setMenuDrawerOpen(true)}
-            className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[10px] font-bold transition-all duration-150 active:scale-95",
-              menuDrawerOpen
-                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/[0.12]"
-                : "text-text-secondary hover:text-foreground hover:bg-surface/50"
-            )}
+      {/* Floating Bottom Action Dock for Mobile (Matches Screenshot 1 Exactly) */}
+      <div className="fixed inset-x-0 bottom-4 z-40 pointer-events-none flex justify-center px-4 lg:hidden">
+        <div className="pointer-events-auto flex w-full max-w-sm items-center justify-between gap-3">
+          {/* Left: Circular Setup Progress Ring */}
+          <Link
+            href="/dashboard/settings"
+            className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-background/90 p-1 shadow-lg ring-1 ring-border/80 backdrop-blur-xl transition-transform active:scale-95"
+            title={`Profil sozlamasi: ${setupPercent}% tayyor`}
           >
-            <Menu className="h-4 w-4" strokeWidth={2} />
-            <span>{t.nav.navigation}</span>
-          </button>
+            <div className="relative flex h-11 w-11 items-center justify-center">
+              <svg className="h-11 w-11 -rotate-90 transform" viewBox="0 0 44 44">
+                <circle
+                  cx="22"
+                  cy="22"
+                  r={radius}
+                  className="stroke-zinc-200 dark:stroke-zinc-800"
+                  strokeWidth="3.5"
+                  fill="transparent"
+                />
+                <circle
+                  cx="22"
+                  cy="22"
+                  r={radius}
+                  className="stroke-violet-500 transition-all duration-700 ease-out"
+                  strokeWidth="3.5"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center text-center leading-[1]">
+                <span className="text-[10px] font-black text-foreground">{setupPercent}%</span>
+                <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-tight">
+                  set up
+                </span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Right: Floating Action Capsule Dock [ + Add ] [ 👁 Preview ] [ 🖌 Design ] [ ⋯ ] */}
+          <div className="flex flex-1 items-center justify-around gap-1 rounded-full border border-border/80 bg-background/95 px-3 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+            {/* 1. Add */}
+            <Link
+              href="/dashboard/links"
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                pathname.startsWith("/dashboard/links") || pathname === "/dashboard"
+                  ? "text-foreground font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Plus className="h-4 w-4 stroke-[2.5]" />
+              <span>Add</span>
+            </Link>
+
+            {/* 2. Preview */}
+            <button
+              type="button"
+              onClick={() => setIsMobilePreviewOpen(!isMobilePreviewOpen)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                isMobilePreviewOpen
+                  ? "text-emerald-600 dark:text-emerald-400 font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-4 w-4 stroke-[2.2]" />
+              <span>Preview</span>
+            </button>
+
+            {/* 3. Design */}
+            <Link
+              href="/dashboard/appearance"
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                pathname.startsWith("/dashboard/appearance")
+                  ? "text-emerald-600 dark:text-emerald-400 font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Palette className="h-4 w-4 stroke-[2.2]" />
+              <span>Design</span>
+            </Link>
+
+            {/* 4. More / Menu drawer toggle */}
+            <button
+              type="button"
+              onClick={() => setMenuDrawerOpen(true)}
+              className="flex flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-all active:scale-95"
+              title="Ko'proq menyular"
+            >
+              <MoreHorizontal className="h-4 w-4 stroke-[2.2]" />
+              <span>Menyu</span>
+            </button>
+          </div>
         </div>
-      </nav>
+      </div>
     </>
   );
 }
