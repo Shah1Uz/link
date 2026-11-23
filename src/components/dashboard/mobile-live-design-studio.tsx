@@ -232,7 +232,12 @@ const GRADIENT_PRESETS = [
 
 type ToolTab = "theme" | "header" | "wallpaper" | "text" | "buttons" | "colors" | null;
 
-export function MobileLiveDesignStudio() {
+interface MobileLiveDesignStudioProps {
+  onBackToEditor?: () => void;
+  onOpenSection?: (section: string) => void;
+}
+
+export function MobileLiveDesignStudio({ onBackToEditor, onOpenSection }: MobileLiveDesignStudioProps = {}) {
   const { profile, updateProfile, theme, updateTheme, links } = useDashboard();
   const { t } = useI18n();
 
@@ -391,19 +396,31 @@ export function MobileLiveDesignStudio() {
   };
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-zinc-950 font-sans">
+    <div className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden bg-zinc-950 font-sans">
       <DynamicFontLoader font={fontHeading} />
 
       {/* TOP HEADER: Back arrow, Username, Action buttons */}
       <header className="relative z-30 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-black/40 px-3 backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/links"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95"
-            title="Dashboardga qaytish"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          {onBackToEditor ? (
+            <button
+              type="button"
+              onClick={onBackToEditor}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/20 active:scale-95"
+              title="Sozlamalarga qaytish"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Sozlamalar</span>
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/links"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95"
+              title="Dashboardga qaytish"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          )}
           <span className="font-heading text-sm font-extrabold tracking-tight text-white">
             @{username}
           </span>
@@ -554,13 +571,30 @@ export function MobileLiveDesignStudio() {
                   : "Ranglar"}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTool(null)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              {onOpenSection && activeTool && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sec = activeTool;
+                    setActiveTool(null);
+                    onOpenSection(sec);
+                  }}
+                  className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400 hover:bg-white/20 transition-all active:scale-95 border border-emerald-500/30"
+                  title="To'liq kengaytirilgan sozlamalarni ochish"
+                >
+                  <SlidersHorizontal className="h-3 w-3" />
+                  <span>To&apos;liq sozlamalar</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveTool(null)}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Drawer Body */}

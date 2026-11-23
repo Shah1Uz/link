@@ -26,11 +26,6 @@ export function DashboardMobileNav() {
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const username = profile?.username || "creator";
 
-  // Hide mobile nav when on appearance page since MobileLiveDesignStudio renders its own 6-tool docked toolbar
-  if (pathname.startsWith("/dashboard/appearance")) {
-    return null;
-  }
-
   // Calculate dynamic setup completion % (matching Screenshot 1)
   let score = 20; // base account
   if (profile?.displayName) score += 15;
