@@ -26,6 +26,11 @@ export function DashboardMobileNav() {
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const username = profile?.username || "creator";
 
+  // Hide mobile floating nav on appearance page so MobileLiveDesignStudio toolbar has 100% full screen
+  if (pathname.startsWith("/dashboard/appearance")) {
+    return null;
+  }
+
   // Calculate dynamic setup completion % (matching Screenshot 1)
   let score = 20; // base account
   if (profile?.displayName) score += 15;

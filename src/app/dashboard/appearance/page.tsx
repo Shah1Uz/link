@@ -841,26 +841,13 @@ export default function AppearanceEditorPage() {
 
   return (
     <>
-      {/* Mobile Live Design Studio (Opens when user taps "Jonli studiya") */}
-      {mobileView === "live" && (
-        <div className="block lg:hidden">
-          <MobileLiveDesignStudio
-            onBackToEditor={() => setMobileView("editor")}
-            onOpenSection={(sec) => {
-              setActiveSection(sec);
-              setMobileView("editor");
-            }}
-          />
-        </div>
-      )}
+      {/* Mobile Live Design Studio - Phone Preview is ALWAYS visible while designing on Mobile */}
+      <div className="block lg:hidden">
+        <MobileLiveDesignStudio />
+      </div>
 
-      {/* Complete Appearance Studio - Fully visible on BOTH Mobile & Desktop */}
-      <div
-        className={cn(
-          "mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8 pb-32",
-          mobileView === "live" ? "hidden" : "block"
-        )}
-      >
+      {/* Desktop Appearance Studio - For larger screens */}
+      <div className="hidden lg:block mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Top Bar matching reference screenshot */}
       <div className="mb-5 sm:mb-6 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -897,16 +884,6 @@ export default function AppearanceEditorPage() {
 
         {/* Undo, Redo, Cancel, Save action group */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Mobile Live Studio Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setMobileView("live")}
-            className="flex lg:hidden items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all shadow-xs"
-            title="Jonli telefon ko'rinishiga o'tish"
-          >
-            <Smartphone className="h-3.5 w-3.5" />
-            <span>Jonli studiya</span>
-          </button>
           {/* Undo */}
           <button
             type="button"
@@ -1823,20 +1800,6 @@ export default function AppearanceEditorPage() {
               </div>
             </div>
           </Card>
-        </div>
-      )}
-
-      {/* Floating Mobile Live Studio Pill */}
-      {mobileView === "editor" && (
-        <div className="fixed bottom-24 right-4 z-40 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileView("live")}
-            className="flex items-center gap-2 rounded-full bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 px-4 py-2.5 text-xs font-black shadow-2xl border border-white/20 active:scale-95 transition-transform"
-          >
-            <Smartphone className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
-            <span>Jonli studiya</span>
-          </button>
         </div>
       )}
       </div>
