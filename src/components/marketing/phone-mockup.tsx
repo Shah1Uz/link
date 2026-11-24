@@ -252,32 +252,51 @@ export function PhoneMockup({
                 "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80";
 
               return (
-                <div
-                  className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-72 w-full overflow-hidden rounded-t-[2.65rem]"
-                  style={{
-                    maskImage: fadeCfg.maskGradient,
-                    WebkitMaskImage: fadeCfg.maskGradient,
-                  }}
-                >
-                  <img
-                    src={heroSrc}
-                    alt={displayName}
-                    className="h-full w-full object-cover object-top"
-                  />
-
-                  {/* Smooth top darken for status bar / icons */}
+                <>
+                  {/* Solid backing under hero cover so background wallpaper NEVER shines through */}
                   <div
-                    className="absolute inset-0"
-                    style={{
-                      background: `linear-gradient(to bottom, rgba(0, 0, 0, ${topDark}) 0%, transparent 65%)`,
-                    }}
+                    className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-72 w-full rounded-t-[2.65rem]"
+                    style={{ backgroundColor: theme.backgroundColor || "#000000" }}
                   />
-                </div>
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-72 w-full overflow-hidden rounded-t-[2.65rem]"
+                    style={{
+                      maskImage: fadeCfg.maskGradient,
+                      WebkitMaskImage: fadeCfg.maskGradient,
+                    }}
+                  >
+                    <img
+                      src={heroSrc}
+                      alt={displayName}
+                      className="h-full w-full object-cover object-top"
+                    />
+
+                    {/* Smooth top darken for status bar / icons */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: `linear-gradient(to bottom, rgba(0, 0, 0, ${topDark}) 0%, transparent 65%)`,
+                      }}
+                    />
+                  </div>
+                </>
               );
             })()}
             {/* Wallpaper: Image Background with Effect, Tint & Noise */}
             {theme?.backgroundType === "image" && (
-              <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+              <div
+                className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+                style={
+                  layout === "hero"
+                    ? {
+                        maskImage:
+                          "linear-gradient(to bottom, transparent 0%, transparent 165px, rgba(0, 0, 0, 0.4) 215px, black 255px, black 100%)",
+                        WebkitMaskImage:
+                          "linear-gradient(to bottom, transparent 0%, transparent 165px, rgba(0, 0, 0, 0.4) 215px, black 255px, black 100%)",
+                      }
+                    : undefined
+                }
+              >
                 <img
                   src={
                     theme.backgroundImage ||
@@ -321,7 +340,19 @@ export function PhoneMockup({
 
             {/* Wallpaper: Blur Mesh Background */}
             {theme?.backgroundType === "blur" && (
-              <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+              <div
+                className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+                style={
+                  layout === "hero"
+                    ? {
+                        maskImage:
+                          "linear-gradient(to bottom, transparent 0%, transparent 165px, rgba(0, 0, 0, 0.4) 215px, black 255px, black 100%)",
+                        WebkitMaskImage:
+                          "linear-gradient(to bottom, transparent 0%, transparent 165px, rgba(0, 0, 0, 0.4) 215px, black 255px, black 100%)",
+                      }
+                    : undefined
+                }
+              >
                 <div className="absolute -inset-10 bg-gradient-to-tr from-lime-800 via-amber-700 to-emerald-900 blur-2xl opacity-90 scale-125" />
                 <div
                   className="absolute inset-0"

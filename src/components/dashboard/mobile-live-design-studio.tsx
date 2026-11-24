@@ -663,7 +663,19 @@ export function MobileLiveDesignStudio({ onBackToEditor }: MobileLiveDesignStudi
 
         {/* Background Image if active */}
         {backgroundType === "image" && backgroundImage && (
-          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <div
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+            style={
+              layout === "hero"
+                ? {
+                    maskImage:
+                      "linear-gradient(to bottom, transparent 0%, transparent 155px, rgba(0, 0, 0, 0.4) 200px, black 240px, black 100%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, transparent 0%, transparent 155px, rgba(0, 0, 0, 0.4) 200px, black 240px, black 100%)",
+                  }
+                : undefined
+            }
+          >
             <img
               src={backgroundImage}
               alt=""
@@ -675,17 +687,32 @@ export function MobileLiveDesignStudio({ onBackToEditor }: MobileLiveDesignStudi
 
         {/* HERO LAYOUT: Edge-to-edge header photo with smooth gradient fade */}
         {layout === "hero" && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-64 w-full overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent_100%)]">
-            <img
-              src={
-                avatarUrl ||
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1000&auto=format&fit=crop&q=85"
-              }
-              alt=""
-              className="h-full w-full object-cover object-top"
+          <>
+            {/* Solid backing under hero photo so background wallpaper NEVER bleeds through */}
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-64 w-full"
+              style={{ backgroundColor: backgroundColor || "#000000" }}
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
-          </div>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-64 w-full overflow-hidden"
+              style={{
+                maskImage:
+                  "linear-gradient(to bottom, black 0%, black 65%, rgba(0, 0, 0, 0.75) 82%, rgba(0, 0, 0, 0.2) 93%, transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 0%, black 65%, rgba(0, 0, 0, 0.75) 82%, rgba(0, 0, 0, 0.2) 93%, transparent 100%)",
+              }}
+            >
+              <img
+                src={
+                  avatarUrl ||
+                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1000&auto=format&fit=crop&q=85"
+                }
+                alt=""
+                className="h-full w-full object-cover object-top"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+            </div>
+          </>
         )}
 
         <div

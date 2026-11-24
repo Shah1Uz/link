@@ -377,33 +377,52 @@ export function PublicProfileView({
           "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1400&auto=format&fit=crop&q=85";
 
         return (
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[380px] w-full overflow-hidden sm:h-[460px] md:h-[500px]"
-            style={{
-              maskImage: fadeCfg.maskGradient,
-              WebkitMaskImage: fadeCfg.maskGradient,
-            }}
-          >
-            <img
-              src={heroSrc}
-              alt={profile.displayName || profile.username}
-              className="h-full w-full object-cover object-top"
-            />
-
-            {/* Edge-to-edge subtle top darken so share button & top controls remain clear */}
+          <>
+            {/* Solid backing under hero cover so background wallpaper NEVER shines through */}
             <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(to bottom, rgba(0, 0, 0, ${topDark}) 0%, transparent 60%)`,
-              }}
+              className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[380px] w-full sm:h-[460px] md:h-[500px]"
+              style={{ backgroundColor: theme?.backgroundColor || "#000000" }}
             />
-          </div>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[380px] w-full overflow-hidden sm:h-[460px] md:h-[500px]"
+              style={{
+                maskImage: fadeCfg.maskGradient,
+                WebkitMaskImage: fadeCfg.maskGradient,
+              }}
+            >
+              <img
+                src={heroSrc}
+                alt={profile.displayName || profile.username}
+                className="h-full w-full object-cover object-top"
+              />
+
+              {/* Edge-to-edge subtle top darken so share button & top controls remain clear */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(to bottom, rgba(0, 0, 0, ${topDark}) 0%, transparent 60%)`,
+                }}
+              />
+            </div>
+          </>
         );
       })()}
 
       {/* Wallpaper: Image Background with Effect, Tint & Noise */}
       {theme?.backgroundType === "image" && (
-        <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden">
+        <div
+          className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden"
+          style={
+            profile.layout === "hero"
+              ? {
+                  maskImage:
+                    "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
+                }
+              : undefined
+          }
+        >
           <img
             src={
               theme.backgroundImage ||

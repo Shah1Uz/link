@@ -532,49 +532,49 @@ export function getHeroFadeConfig(fade?: string | null) {
   if (f === "low") {
     return {
       maskGradient:
-        "linear-gradient(to bottom, black 0%, black 55%, rgba(0, 0, 0, 0.75) 75%, rgba(0, 0, 0, 0.2) 90%, transparent 100%)",
+        "linear-gradient(to bottom, black 0%, black 75%, rgba(0, 0, 0, 0.8) 88%, rgba(0, 0, 0, 0.25) 95%, transparent 100%)",
       blurMask:
-        "linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(0, 0, 0, 0.6) 70%, black 90%)",
+        "linear-gradient(to bottom, transparent 0%, transparent 65%, rgba(0, 0, 0, 0.6) 82%, black 95%)",
       topDarken: (darken: string = "balanced") => (darken === "deep" ? 0.55 : darken === "subtle" ? 0.2 : 0.35),
       midDarken: (darken: string = "balanced") => (darken === "deep" ? 0.88 : darken === "subtle" ? 0.5 : 0.72),
-      fadeStartPercent: 40,
-      fadeMidPercent: 78,
+      fadeStartPercent: 65,
+      fadeMidPercent: 88,
     };
   }
   if (f === "medium") {
     return {
       maskGradient:
-        "linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.7) 65%, rgba(0, 0, 0, 0.15) 85%, transparent 100%)",
+        "linear-gradient(to bottom, black 0%, black 65%, rgba(0, 0, 0, 0.75) 82%, rgba(0, 0, 0, 0.2) 93%, transparent 100%)",
       blurMask:
-        "linear-gradient(to bottom, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.6) 60%, black 85%)",
+        "linear-gradient(to bottom, transparent 0%, transparent 52%, rgba(0, 0, 0, 0.6) 78%, black 92%)",
       topDarken: (darken: string = "balanced") => (darken === "deep" ? 0.55 : darken === "subtle" ? 0.2 : 0.35),
       midDarken: (darken: string = "balanced") => (darken === "deep" ? 0.88 : darken === "subtle" ? 0.5 : 0.72),
-      fadeStartPercent: 28,
-      fadeMidPercent: 68,
+      fadeStartPercent: 52,
+      fadeMidPercent: 80,
     };
   }
   if (f === "full") {
     return {
       maskGradient:
-        "linear-gradient(to bottom, black 0%, black 15%, rgba(0, 0, 0, 0.65) 45%, rgba(0, 0, 0, 0.1) 75%, transparent 100%)",
+        "linear-gradient(to bottom, black 0%, black 50%, rgba(0, 0, 0, 0.7) 75%, rgba(0, 0, 0, 0.15) 90%, transparent 100%)",
       blurMask:
-        "linear-gradient(to bottom, transparent 0%, transparent 10%, rgba(0, 0, 0, 0.6) 40%, black 75%)",
+        "linear-gradient(to bottom, transparent 0%, transparent 35%, rgba(0, 0, 0, 0.6) 70%, black 88%)",
       topDarken: (darken: string = "balanced") => (darken === "deep" ? 0.55 : darken === "subtle" ? 0.2 : 0.35),
       midDarken: (darken: string = "balanced") => (darken === "deep" ? 0.88 : darken === "subtle" ? 0.5 : 0.72),
-      fadeStartPercent: 12,
-      fadeMidPercent: 50,
+      fadeStartPercent: 40,
+      fadeMidPercent: 75,
     };
   }
-  // Default: "high" (elevated/ko'tarilgan fade)
+  // Default: "high" (elevated/ko'tarilgan fade - keeps hero solid down to red line)
   return {
     maskGradient:
-      "linear-gradient(to bottom, black 0%, black 25%, rgba(0, 0, 0, 0.65) 52%, rgba(0, 0, 0, 0.12) 78%, transparent 100%)",
+      "linear-gradient(to bottom, black 0%, black 65%, rgba(0, 0, 0, 0.75) 82%, rgba(0, 0, 0, 0.2) 93%, transparent 100%)",
     blurMask:
-      "linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0, 0, 0, 0.6) 48%, black 78%)",
+      "linear-gradient(to bottom, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.6) 75%, black 90%)",
     topDarken: (darken: string = "balanced") => (darken === "deep" ? 0.55 : darken === "subtle" ? 0.2 : 0.35),
     midDarken: (darken: string = "balanced") => (darken === "deep" ? 0.88 : darken === "subtle" ? 0.5 : 0.72),
-    fadeStartPercent: 18,
-    fadeMidPercent: 58,
+    fadeStartPercent: 50,
+    fadeMidPercent: 80,
   };
 }
 
