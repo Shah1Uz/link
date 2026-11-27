@@ -18,16 +18,17 @@ import {
   Upload,
   Video,
   Play,
+  Music,
   Trash2,
   Image as ImageIcon,
   SunMedium,
-  CheckCircle2,
 } from "lucide-react";
 import { useDashboard } from "@/context/dashboard-context";
 import { useI18n } from "@/components/i18n-provider";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, isPremiumTier } from "@/lib/utils";
 import { DynamicFontLoader } from "@/components/shared/dynamic-font-loader";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 // 1. Curated 1-Click Themes
 const MOBILE_THEMES = [
@@ -319,7 +320,7 @@ interface MobileLiveDesignStudioProps {
 }
 
 export function MobileLiveDesignStudio({ onBackToEditor }: MobileLiveDesignStudioProps = {}) {
-  const { profile, updateProfile, theme, updateTheme, links } = useDashboard();
+  const { profile, updateProfile, theme, updateTheme, links, subscriptionTier } = useDashboard();
   const { t } = useI18n();
 
   // Active bottom sheet tool
@@ -805,12 +806,15 @@ export function MobileLiveDesignStudio({ onBackToEditor }: MobileLiveDesignStudi
           )}
 
           {/* Display Name with live font */}
-          <h2
-            style={{ fontFamily: fontHeading, color: textColor }}
-            className="text-xl font-extrabold tracking-tight drop-shadow-md"
-          >
-            {displayName}
-          </h2>
+          <div className="flex items-center justify-center gap-1.5">
+            <h2
+              style={{ fontFamily: fontHeading, color: textColor }}
+              className="text-xl font-extrabold tracking-tight drop-shadow-md"
+            >
+              {displayName}
+            </h2>
+            {profile?.verified && isPremiumTier(subscriptionTier) && <VerifiedBadge size="sm" />}
+          </div>
 
           {/* Social Icons Placeholder */}
           <div className="mt-2.5 flex items-center justify-center gap-3">
@@ -820,6 +824,36 @@ export function MobileLiveDesignStudio({ onBackToEditor }: MobileLiveDesignStudi
               </svg>
             </span>
           </div>
+
+          {/* Live Music Preview in Mobile Studio */}
+          {theme?.spotifyMusicEnabled &&
+            (theme?.spotifyTrackTitle || theme?.spotifyTrackUrl || theme?.spotifyTrackPreview) && (
+              <div className="mt-4 flex w-full items-center gap-2.5 rounded-2xl border border-white/15 bg-zinc-950/80 p-2.5 text-left text-white shadow-lg backdrop-blur-md">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-emerald-600/30">
+                  {theme.spotifyTrackImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={theme.spotifyTrackImage}
+                      alt={theme.spotifyTrackTitle || "Music"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Music className="h-4 w-4 text-emerald-400" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-bold leading-tight text-white">
+                    {theme.spotifyTrackTitle || "Profil Musiqasi"}
+                  </p>
+                  <p className="truncate text-[9.5px] text-zinc-400">
+                    {theme.spotifyTrackArtist || "Spotify / Audio"}
+                  </p>
+                </div>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-zinc-950">
+                  <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                </span>
+              </div>
+            )}
 
           {/* Links stack with real-time button styles */}
           <div className="mt-5 w-full space-y-3">

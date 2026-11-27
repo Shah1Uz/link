@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Spotify URL is required" }, { status: 400 });
     }
 
-    // Normalize spotify:track:xxx or URL
-    let cleanUrl = inputUrl;
+    // Normalize spotify:track:xxx or international open.spotify.com/intl-xx/... URL
+    let cleanUrl = inputUrl.replace(/open\.spotify\.com\/intl-[a-z-]+\//i, "open.spotify.com/");
     if (cleanUrl.startsWith("spotify:track:")) {
       cleanUrl = `https://open.spotify.com/track/${cleanUrl.replace("spotify:track:", "")}`;
     } else if (cleanUrl.startsWith("spotify:album:")) {
@@ -88,11 +88,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q")?.trim();
 

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 const SESSION_COOKIES = [
   "biospace_session",
+  "biospace_impersonate",
   "__session",
   "__client_uat",
   "__clerk_db_jwt",
@@ -15,7 +16,7 @@ function applyLogoutCookies(response: NextResponse) {
       path: "/",
       maxAge: 0,
       expires: new Date(0),
-      httpOnly: name === "biospace_session",
+      httpOnly: name === "biospace_session" || name === "biospace_impersonate",
       sameSite: "lax",
     });
   });

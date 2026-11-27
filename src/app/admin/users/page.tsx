@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { AdminHeader } from "@/components/layout/admin-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { UserDetailsDrawer } from "@/components/admin/user-details-drawer";
 import {
   Users,
   Search,
@@ -19,16 +21,18 @@ import {
   Zap,
   ZapOff,
   ShieldCheck,
-  ShieldAlert,
-  CheckCircle2,
-  Crown,
+  Eye,
+  PanelRightOpen,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isPremiumTier } from "@/lib/utils";
 
 interface UserItem {
   id: string;
   email: string;
   name: string | null;
+  avatar?: string | null;
   role: string;
   subscriptionTier: string;
   isSuspended: boolean;
@@ -38,11 +42,14 @@ interface UserItem {
     id: string;
     username: string;
     displayName: string | null;
+    avatarUrl?: string | null;
     verified: boolean;
     isPublished: boolean;
     _count: {
       links: number;
       analyticsEvents: number;
+      customDomains?: number;
+      orders?: number;
     };
   } | null;
 }
@@ -52,35 +59,41 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [tierFilter, setTierFilter] = useState("");
+  const [verifiedFilter, setVerifiedFilter] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Selected user for User Details Drawer
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
   // Delete modal
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       if (roleFilter) params.append("role", roleFilter);
       if (tierFilter) params.append("tier", tierFilter);
+      if (verifiedFilter) params.append("verified", verifiedFilter);
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
-        setUsers(json.users);
+        setUsers(json.users || []);
       }
     } catch {
       toast.error("Failed to load users");
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, roleFilter, tierFilter, verifiedFilter]);
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, tierFilter]);
+  }, [roleFilter, tierFilter, verifiedFilter, fetchUsers]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +102,13 @@ export default function AdminUsersPage() {
 
   const handleUpdateStatus = async (
     userId: string,
-    updates: { isSuspended?: boolean; isBanned?: boolean; role?: string; subscriptionTier?: string }
+    updates: {
+      isSuspended?: boolean;
+      isBanned?: boolean;
+      role?: string;
+      subscriptionTier?: string;
+      verified?: boolean;
+    }
   ) => {
     try {
       const res = await fetch("/api/admin/users", {
@@ -101,12 +120,61 @@ export default function AdminUsersPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to update user status");
 
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
-      );
-      toast.success("User record updated successfully");
+      if (json.user) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? json.user : u))
+        );
+      } else {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId
+              ? {
+                  ...u,
+                  ...updates,
+                  profile: u.profile
+                    ? {
+                        ...u.profile,
+                        ...(updates.verified !== undefined
+                          ? { verified: updates.verified }
+                          : {}),
+                      }
+                    : u.profile,
+                }
+              : u
+          )
+        );
+      }
+
+      if (updates.verified !== undefined) {
+        toast.success(
+          updates.verified
+            ? "Ko'k galochka (Verified) berildi!"
+            : "Verified belgisi olib tashlandi"
+        );
+      } else {
+        toast.success("User record updated successfully");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update user");
+    }
+  };
+
+  const handleQuickImpersonate = async (userId: string, label: string) => {
+    try {
+      setImpersonatingId(userId);
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impersonate boshlanmadi");
+
+      toast.success(`${label} sifatida kirilmoqda...`);
+      window.location.href = data.redirectUrl || "/dashboard";
+    } catch (err: any) {
+      toast.error(err.message || "Foydalanuvchi sifatida kirib bo'lmadi");
+      setImpersonatingId(null);
     }
   };
 
@@ -120,6 +188,7 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error("Failed to delete user");
 
       setUsers((prev) => prev.filter((u) => u.id !== deleteUserId));
+      if (selectedUserId === deleteUserId) setSelectedUserId(null);
       toast.success("User permanently deleted");
       setDeleteUserId(null);
     } catch (err: any) {
@@ -136,7 +205,7 @@ export default function AdminUsersPage() {
     <div>
       <AdminHeader
         title="User & Account Management"
-        description="Search, filter, view stats, modify roles, or suspend/ban accounts."
+        description="Search, verify creators, inspect full user activity, impersonate or moderate accounts."
       />
 
       <div className="mx-auto max-w-6xl space-y-5 p-6 sm:space-y-6 sm:p-8">
@@ -173,14 +242,14 @@ export default function AdminUsersPage() {
           <Card className="p-4 rounded-2xl flex items-center justify-between border-border/80">
             <div>
               <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
-                FREE Users
+                Verified
               </p>
-              <p className="text-2xl font-black text-zinc-600 dark:text-zinc-300 mt-1">
-                {users.filter((u) => u.subscriptionTier === "FREE").length}
+              <p className="text-2xl font-black text-sky-500 mt-1">
+                {users.filter((u) => isPremiumTier(u.subscriptionTier) && u.profile?.verified).length}
               </p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-zinc-500/10 text-zinc-500 flex items-center justify-center">
-              <Zap className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-xl bg-sky-500/10 flex items-center justify-center">
+              <VerifiedBadge size="md" />
             </div>
           </Card>
 
@@ -215,7 +284,7 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 sm:w-36 sm:flex-none">
+              <div className="relative flex-1 sm:w-32 sm:flex-none">
                 <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
                 <select
                   aria-label="Filter by role"
@@ -230,7 +299,7 @@ export default function AdminUsersPage() {
                 <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
               </div>
 
-              <div className="relative flex-1 sm:w-36 sm:flex-none">
+              <div className="relative flex-1 sm:w-32 sm:flex-none">
                 <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
                 <select
                   aria-label="Filter by subscription tier"
@@ -241,6 +310,21 @@ export default function AdminUsersPage() {
                   <option value="">All Tiers</option>
                   <option value="FREE">FREE</option>
                   <option value="PRO">PRO</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+              </div>
+
+              <div className="relative flex-1 sm:w-36 sm:flex-none">
+                <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+                <select
+                  aria-label="Filter by verified status"
+                  value={verifiedFilter}
+                  onChange={(e) => setVerifiedFilter(e.target.value)}
+                  className={selectClasses}
+                >
+                  <option value="">All Verified</option>
+                  <option value="true">Verified Only</option>
+                  <option value="false">Unverified</option>
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
               </div>
@@ -264,7 +348,7 @@ export default function AdminUsersPage() {
                   Creator directory
                 </h2>
                 <p className="truncate text-[11px] text-text-secondary">
-                  Accounts, roles and platform status
+                  Qatorni bosing — foydalanuvchi linklari, domenlari, musiqasi va tarixini batafsil ko&apos;ring
                 </p>
               </div>
             </div>
@@ -322,21 +406,37 @@ export default function AdminUsersPage() {
                 <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
                   {users.map((u) => {
                     const profile = u.profile;
-                    const displayName = u.name || "Anonymous";
+                    const displayName = profile?.displayName || u.name || "Anonymous";
+                    const avatarSrc = profile?.avatarUrl || u.avatar || null;
+                    const isPremium = isPremiumTier(u.subscriptionTier);
+                    const isVerified = Boolean(profile?.verified && isPremium);
                     return (
                       <tr
                         key={u.id}
-                        className="group transition-colors hover:bg-emerald-500/[0.03] dark:hover:bg-white/[0.025]"
+                        onClick={() => setSelectedUserId(u.id)}
+                        className="group cursor-pointer transition-colors hover:bg-emerald-500/[0.04] dark:hover:bg-white/[0.03]"
                       >
                         {/* User identity */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/90 via-teal-400/90 to-cyan-400/90 text-[10px] font-extrabold uppercase text-emerald-950 ring-1 ring-emerald-500/20">
-                              {displayName.slice(0, 2)}
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400/90 via-teal-400/90 to-cyan-400/90 text-[10px] font-extrabold uppercase text-emerald-950 ring-1 ring-emerald-500/20">
+                              {avatarSrc ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={avatarSrc}
+                                  alt={displayName}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                displayName.slice(0, 2)
+                              )}
                             </div>
                             <div className="min-w-0">
-                              <div className="truncate font-bold text-foreground">
-                                {displayName}
+                              <div className="flex items-center gap-1.5">
+                                <span className="truncate font-bold text-foreground">
+                                  {displayName}
+                                </span>
+                                {isVerified && <VerifiedBadge size="xs" />}
                               </div>
                               <div className="truncate text-[10.5px] text-text-secondary">
                                 {u.email}
@@ -346,7 +446,10 @@ export default function AdminUsersPage() {
                         </td>
 
                         {/* Profile username */}
-                        <td className="px-4 py-3.5">
+                        <td
+                          className="px-4 py-3.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {profile ? (
                             <a
                               href={`/${profile.username}`}
@@ -365,9 +468,11 @@ export default function AdminUsersPage() {
                         </td>
 
                         {/* Role & subscription */}
-                        <td className="px-4 py-3.5">
+                        <td
+                          className="px-4 py-3.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="flex flex-col gap-1.5 min-w-[130px]">
-                            {/* Tier Quick Switcher */}
                             <div className="flex items-center gap-1.5">
                               <select
                                 value={u.subscriptionTier}
@@ -387,7 +492,6 @@ export default function AdminUsersPage() {
                                 <option value="PRO">Plan: PRO ⭐</option>
                               </select>
 
-                              {/* Role Quick Switcher */}
                               <select
                                 value={u.role}
                                 onChange={(e) =>
@@ -412,13 +516,15 @@ export default function AdminUsersPage() {
 
                         {/* Status */}
                         <td className="px-4 py-3.5">
-                          {u.isBanned ? (
-                            <Badge variant="destructive">BANNED</Badge>
-                          ) : u.isSuspended ? (
-                            <Badge variant="warning">SUSPENDED</Badge>
-                          ) : (
-                            <Badge variant="success">ACTIVE</Badge>
-                          )}
+                          <div className="flex flex-wrap items-center gap-1">
+                            {u.isBanned ? (
+                              <Badge variant="destructive">BANNED</Badge>
+                            ) : u.isSuspended ? (
+                              <Badge variant="warning">SUSPENDED</Badge>
+                            ) : (
+                              <Badge variant="success">ACTIVE</Badge>
+                            )}
+                          </div>
                         </td>
 
                         {/* Profile stats */}
@@ -451,8 +557,88 @@ export default function AdminUsersPage() {
                         </td>
 
                         {/* Actions */}
-                        <td className="px-4 py-3.5">
+                        <td
+                          className="px-4 py-3.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* BATAFSIL DRAWER BUTTON */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedUserId(u.id)}
+                              className="h-7 rounded-lg px-2 text-[10.5px] font-semibold"
+                              title="Batafsil profilni ochish"
+                            >
+                              <PanelRightOpen className="mr-1 h-3 w-3 text-emerald-500" />
+                              <span>Batafsil</span>
+                            </Button>
+
+                            {/* 1-CLICK VERIFIED TOGGLE (PRO ONLY) */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (!isPremium) {
+                                  toast.error(
+                                    "Ko'k galochka (Verified) faqat Premium (PRO) obuna olgan foydalanuvchilarga beriladi. Avval PRO bering!"
+                                  );
+                                  return;
+                                }
+                                handleUpdateStatus(u.id, {
+                                  verified: !isVerified,
+                                });
+                              }}
+                              className={`h-7 rounded-lg px-2 text-[10.5px] font-bold ${
+                                !isPremium
+                                  ? "border-zinc-200 text-text-secondary opacity-65 hover:border-amber-500/40 dark:border-white/10"
+                                  : isVerified
+                                    ? "border-sky-500/40 bg-sky-500/10 text-sky-700 hover:bg-sky-500/20 dark:text-sky-300"
+                                    : "hover:border-sky-500/40 hover:text-sky-600"
+                              }`}
+                              title={
+                                !isPremium
+                                  ? "Faqat Premium (PRO) obuna olganlarga beriladi"
+                                  : isVerified
+                                    ? "Ko'k galochkani olib tashlash"
+                                    : "Ko'k galochka (Verified) berish"
+                              }
+                            >
+                              {!isPremium ? (
+                                <Lock className="mr-1 h-3 w-3 text-amber-500" />
+                              ) : (
+                                <VerifiedBadge size="xs" className="mr-1" />
+                              )}
+                              <span>
+                                {!isPremium
+                                  ? "PRO kerak"
+                                  : isVerified
+                                    ? "Verified"
+                                    : "Verify"}
+                              </span>
+                            </Button>
+
+                            {/* IMPERSONATE BUTTON */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={impersonatingId === u.id}
+                              onClick={() =>
+                                handleQuickImpersonate(
+                                  u.id,
+                                  profile?.username ? `@${profile.username}` : u.email
+                                )
+                              }
+                              className="h-7 rounded-lg border-amber-500/30 px-2 text-[10.5px] font-semibold text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                              title="Foydalanuvchi sifatida ko'rish (Impersonate)"
+                            >
+                              {impersonatingId === u.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                            </Button>
+
                             {/* 1-CLICK GRANT / REVOKE PRO */}
                             {u.subscriptionTier === "PRO" ? (
                               <Button
@@ -463,11 +649,10 @@ export default function AdminUsersPage() {
                                     subscriptionTier: "FREE",
                                   })
                                 }
-                                className="h-7 rounded-lg border-amber-500/30 px-2.5 text-[10.5px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                                className="h-7 rounded-lg border-amber-500/30 px-2 text-[10.5px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
                                 title="Revoke PRO status (Downgrade to FREE)"
                               >
-                                <ZapOff className="mr-1 h-3 w-3" />
-                                <span>Revoke PRO</span>
+                                <ZapOff className="h-3 w-3" />
                               </Button>
                             ) : (
                               <Button
@@ -477,11 +662,10 @@ export default function AdminUsersPage() {
                                     subscriptionTier: "PRO",
                                   })
                                 }
-                                className="h-7 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-black px-2.5 text-[10.5px] font-bold hover:brightness-105 shadow-xs"
+                                className="h-7 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-black px-2 text-[10.5px] font-bold hover:brightness-105 shadow-xs"
                                 title="Grant PRO access instantly"
                               >
-                                <Sparkles className="mr-1 h-3 w-3 fill-current" />
-                                <span>Grant PRO</span>
+                                <Sparkles className="h-3 w-3 fill-current" />
                               </Button>
                             )}
 
@@ -513,7 +697,7 @@ export default function AdminUsersPage() {
                               className={`h-7 rounded-lg px-2 text-[10.5px] font-semibold ${
                                 u.isBanned
                                   ? "border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
-                                  : "border-amber-500/30 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                                  : "border-rose-500/30 text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
                               }`}
                             >
                               {u.isBanned ? "Unban" : "Ban"}
@@ -539,6 +723,17 @@ export default function AdminUsersPage() {
           )}
         </Card>
       </div>
+
+      {/* User Details Slide-Over Drawer */}
+      <UserDetailsDrawer
+        userId={selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+        onUserUpdated={(updatedUser) => {
+          setUsers((prev) =>
+            prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+          );
+        }}
+      />
 
       {/* Delete user confirmation */}
       <ConfirmModal

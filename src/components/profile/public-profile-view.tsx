@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/shared/platform-icon";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { ReportModal } from "./report-modal";
 import { formatUrlForHref, groupLinksWithYouTubeCarousels, cn, getHeroBlurPx, getHeroFadeConfig } from "@/lib/utils";
 import { YouTubeEmbed } from "@/components/shared/youtube-embed";
@@ -415,11 +416,11 @@ export function PublicProfileView({
           style={
             profile.layout === "hero"
               ? {
-                  maskImage:
-                    "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
-                }
+                maskImage:
+                  "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, transparent 0%, transparent 220px, rgba(0, 0, 0, 0.4) 300px, black 370px, black 100%)",
+              }
               : undefined
           }
         >
@@ -730,25 +731,13 @@ export function PublicProfileView({
           <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
             <h1
               className={`text-[26px] font-extrabold leading-tight tracking-[-0.03em] sm:text-[32px] ${hasClassicVideo || profile.layout === "hero" ? "drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]" : ""
-              }`}
+                }`}
               style={{ fontFamily: getFontFamilyCss(theme?.fontHeading) }}
             >
               {displayName}
             </h1>
             {profile.verified && (
-              <span
-                className="inline-flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: accent,
-                  color: ts.accentText,
-                  boxShadow: `0 0 0 2px ${withAlpha(theme?.backgroundColor || "#0d1117", 0.9)}`,
-                }}
-                title="Verified creator"
-                aria-label="Verified creator"
-                role="img"
-              >
-                <Check className="h-3 w-3" strokeWidth={3.5} />
-              </span>
+              <VerifiedBadge size="lg" className="sm:h-6 sm:w-6" />
             )}
           </div>
 

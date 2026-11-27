@@ -1,7 +1,63 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
+import crypto from "crypto";
 import { prisma } from "./prisma";
 import { isReservedUsername } from "./validations";
+
+export const IMPERSONATION_COOKIE_NAME = "biospace_impersonate";
+
+function getImpersonationSecret(): string {
+  return (
+    process.env.IMPERSONATION_SECRET ||
+    process.env.CLERK_SECRET_KEY ||
+    process.env.DATABASE_URL ||
+    "biospace-local-impersonation-secret"
+  );
+}
+
+export function createImpersonationToken(
+  adminId: string,
+  targetUserId: string,
+  ttlMs = 3600 * 1000
+): string {
+  const expiresAt = Date.now() + ttlMs;
+  const payload = `${targetUserId}.${adminId}.${expiresAt}`;
+  const sig = crypto
+    .createHmac("sha256", getImpersonationSecret())
+    .update(payload)
+    .digest("hex");
+  return `${payload}.${sig}`;
+}
+
+export function verifyImpersonationToken(
+  token: string,
+  expectedAdminId: string
+): { targetUserId: string; adminId: string; expiresAt: number } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 4) return null;
+    const [targetUserId, adminId, expiresAtStr, sigHex] = parts;
+    if (!targetUserId || !adminId || !expiresAtStr || !sigHex) return null;
+    if (adminId !== expectedAdminId) return null;
+
+    const expiresAt = Number(expiresAtStr);
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+
+    const expectedSig = crypto
+      .createHmac("sha256", getImpersonationSecret())
+      .update(`${targetUserId}.${adminId}.${expiresAtStr}`)
+      .digest("hex");
+
+    const sigBuf = Buffer.from(sigHex, "hex");
+    const expectedBuf = Buffer.from(expectedSig, "hex");
+    if (sigBuf.length !== expectedBuf.length) return null;
+    if (!crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
+
+    return { targetUserId, adminId, expiresAt };
+  } catch {
+    return null;
+  }
+}
 
 export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR" | "SUPPORT" | "USER";
 
@@ -15,6 +71,11 @@ export interface AuthenticatedUser {
   subscriptionTier: "FREE" | "PRO" | "BUSINESS";
   isSuspended: boolean;
   isBanned: boolean;
+  impersonatedBy?: {
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
   profile?: {
     id: string;
     username: string;
@@ -278,7 +339,7 @@ async function fetchClerkUserFromClient(sessionToken: string): Promise<{
  * 3. Fallback Clerk session JWT / client sync ("__session")
  * 4. Local dev / test runner fallback ("alex@creator.dev")
  */
-export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
+async function resolveBaseAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   try {
     let cookieStore = null;
     try {
@@ -465,12 +526,56 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
   }
 }
 
+export async function getAuthenticatedUser(options?: {
+  ignoreImpersonation?: boolean;
+}): Promise<AuthenticatedUser | null> {
+  const baseUser = await resolveBaseAuthenticatedUser();
+  if (!baseUser) return null;
+
+  if (!options?.ignoreImpersonation) {
+    const isRealAdmin =
+      baseUser.role === "SUPER_ADMIN" ||
+      baseUser.role === "ADMIN" ||
+      isEmailInAdminAllowlist(baseUser.email);
+
+    if (isRealAdmin) {
+      try {
+        const cookieStore = await cookies();
+        const impToken = cookieStore.get(IMPERSONATION_COOKIE_NAME)?.value;
+        if (impToken) {
+          const parsed = verifyImpersonationToken(impToken, baseUser.id);
+          if (parsed && parsed.targetUserId !== baseUser.id) {
+            const targetUser = await prisma.user.findUnique({
+              where: { id: parsed.targetUserId },
+              include: { profile: true },
+            });
+            if (targetUser) {
+              return {
+                ...(targetUser as unknown as AuthenticatedUser),
+                impersonatedBy: {
+                  id: baseUser.id,
+                  email: baseUser.email,
+                  name: baseUser.name,
+                },
+              };
+            }
+          }
+        }
+      } catch {
+        // Ignore impersonation lookup failures in non-request contexts
+      }
+    }
+  }
+
+  return baseUser;
+}
+
 /**
  * Strictly verifies admin role server-side.
  * Returns the admin user or null if unauthorized.
  */
 export async function verifyAdminSession(): Promise<AuthenticatedUser | null> {
-  const user = await getAuthenticatedUser();
+  const user = await getAuthenticatedUser({ ignoreImpersonation: true });
   if (!user) return null;
 
   const isEmailAdmin = isEmailInAdminAllowlist(user.email);

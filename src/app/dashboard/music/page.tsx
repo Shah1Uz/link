@@ -73,11 +73,87 @@ export default function MusicStudioPage() {
   // Audio trimming state (Start / End times in seconds)
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(30);
+  const [maxDuration, setMaxDuration] = useState(30);
   const [isPlayingTrimmed, setIsPlayingTrimmed] = useState(false);
   const trimAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Custom audio upload state
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+
+  // Detect natural duration for uploaded custom audio files (e.g. > 30s)
+  useEffect(() => {
+    const raw = trackPreview?.split("#")[0];
+    if (!raw || (!raw.startsWith("/uploads/") && !raw.startsWith("data:audio/"))) {
+      setMaxDuration(30);
+      return;
+    }
+    const probe = new Audio(raw);
+    const onMeta = () => {
+      if (probe.duration && Number.isFinite(probe.duration) && probe.duration > 5) {
+        const dur = Math.max(30, Math.floor(probe.duration));
+        setMaxDuration(dur);
+      }
+    };
+    probe.addEventListener("loadedmetadata", onMeta);
+    return () => {
+      probe.removeEventListener("loadedmetadata", onMeta);
+      probe.src = "";
+    };
+  }, [trackPreview]);
+
+  const persistMusicToServer = async (overrides: {
+    spotifyMusicEnabled?: boolean;
+    spotifyTrackUrl?: string | null;
+    spotifyTrackTitle?: string | null;
+    spotifyTrackArtist?: string | null;
+    spotifyTrackImage?: string | null;
+    spotifyTrackPreview?: string | null;
+    spotifyMusicLayout?: "floating" | "card";
+  }) => {
+    const nextEnabled =
+      overrides.spotifyMusicEnabled !== undefined ? overrides.spotifyMusicEnabled : enabled;
+    const nextUrl =
+      overrides.spotifyTrackUrl !== undefined ? overrides.spotifyTrackUrl : trackUrl;
+    const nextTitle =
+      overrides.spotifyTrackTitle !== undefined ? overrides.spotifyTrackTitle : trackTitle;
+    const nextArtist =
+      overrides.spotifyTrackArtist !== undefined ? overrides.spotifyTrackArtist : trackArtist;
+    const nextImage =
+      overrides.spotifyTrackImage !== undefined ? overrides.spotifyTrackImage : trackImage;
+    const nextPreview =
+      overrides.spotifyTrackPreview !== undefined ? overrides.spotifyTrackPreview : trackPreview;
+    const nextLayout =
+      overrides.spotifyMusicLayout !== undefined ? overrides.spotifyMusicLayout : layout;
+
+    const res = await fetch("/api/theme", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        spotifyMusicEnabled: nextEnabled,
+        spotifyTrackUrl: nextUrl,
+        spotifyTrackTitle: nextTitle,
+        spotifyTrackArtist: nextArtist,
+        spotifyTrackImage: nextImage,
+        spotifyTrackPreview: nextPreview,
+        spotifyMusicLayout: nextLayout,
+      }),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || "Musiqa sozlamalarini saqlab bo'lmadi");
+    }
+
+    updateTheme({
+      spotifyMusicEnabled: nextEnabled,
+      spotifyTrackUrl: nextUrl,
+      spotifyTrackTitle: nextTitle,
+      spotifyTrackArtist: nextArtist,
+      spotifyTrackImage: nextImage,
+      spotifyTrackPreview: nextPreview,
+      spotifyMusicLayout: nextLayout,
+    });
+  };
 
   useEffect(() => {
     if (theme) {
@@ -160,7 +236,7 @@ export default function MusicStudioPage() {
   // Trimmer controls
   const handleTrimChange = (newStart: number, newEnd: number) => {
     const validStart = Math.max(0, Math.min(newStart, newEnd - 2));
-    const validEnd = Math.max(validStart + 2, Math.min(30, newEnd));
+    const validEnd = Math.max(validStart + 2, Math.min(maxDuration, newEnd));
     setTrimStart(validStart);
     setTrimEnd(validEnd);
 
@@ -173,13 +249,14 @@ export default function MusicStudioPage() {
   };
 
   const handleResetTrim = () => {
+    const resetEnd = Math.min(30, maxDuration);
     setTrimStart(0);
-    setTrimEnd(30);
+    setTrimEnd(resetEnd);
     if (trackPreview) {
       const raw = trackPreview.split("#")[0];
       setTrackPreview(raw);
       updateTheme({ spotifyTrackPreview: raw });
-      toast.info("Qirqish sozlamalari tiklandi (0s - 30s)");
+      toast.info(`Qirqish sozlamalari tiklandi (0s - ${resetEnd}s)`);
     }
   };
 
@@ -251,26 +328,29 @@ export default function MusicStudioPage() {
         throw new Error(data.error || "Trekni aniqlab bo'lmadi");
       }
 
+      const nextArtist = data.type === "track" ? "Spotify Track" : "Spotify Collection";
+      const nextPreview = data.previewUrl || null;
+
       setTrackUrl(data.trackUrl);
       setTrackTitle(data.title);
-      setTrackArtist(data.type === "track" ? "Spotify Track" : "Spotify Collection");
+      setTrackArtist(nextArtist);
       setTrackImage(data.thumbnailUrl);
-      setTrackPreview(data.previewUrl || null);
+      setTrackPreview(nextPreview);
       setEnabled(true);
       setUrlInput("");
       setTrimStart(0);
       setTrimEnd(30);
 
-      updateTheme({
+      await persistMusicToServer({
         spotifyMusicEnabled: true,
         spotifyTrackUrl: data.trackUrl,
         spotifyTrackTitle: data.title,
-        spotifyTrackArtist: data.type === "track" ? "Spotify Track" : "Spotify Collection",
+        spotifyTrackArtist: nextArtist,
         spotifyTrackImage: data.thumbnailUrl,
-        spotifyTrackPreview: data.previewUrl || null,
+        spotifyTrackPreview: nextPreview,
       });
 
-      toast.success("Spotify treki biriktirildi! 🎵 O'zgarishlarni saqlash tugmasini bosing.");
+      toast.success("Spotify treki profilga saqlandi va ulandi! 🎵");
     } catch (err: any) {
       toast.error(err.message || "Trekni yuklashda xatolik");
     } finally {
@@ -298,7 +378,7 @@ export default function MusicStudioPage() {
     }
   };
 
-  const handleSelectSearchResult = (item: any) => {
+  const handleSelectSearchResult = async (item: any) => {
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       setPreviewingId(null);
@@ -316,30 +396,39 @@ export default function MusicStudioPage() {
     setTrimStart(0);
     setTrimEnd(30);
 
-    updateTheme({
-      spotifyMusicEnabled: true,
-      spotifyTrackUrl: directSearchUrl,
-      spotifyTrackTitle: item.title,
-      spotifyTrackArtist: item.artist,
-      spotifyTrackImage: item.artwork,
-      spotifyTrackPreview: item.previewUrl || null,
-    });
-
-    toast.success(`"${item.title}" tanlandi! 🎵 Pastdagi qirqish panelida sozlab, saqlashingiz mumkin.`);
+    try {
+      await persistMusicToServer({
+        spotifyMusicEnabled: true,
+        spotifyTrackUrl: directSearchUrl,
+        spotifyTrackTitle: item.title,
+        spotifyTrackArtist: item.artist,
+        spotifyTrackImage: item.artwork,
+        spotifyTrackPreview: item.previewUrl || null,
+      });
+      toast.success(`"${item.title}" profilga saqlandi! 🎵 Pastda qirqishni sozlashingiz mumkin.`);
+    } catch (err: any) {
+      toast.error(err.message || "Musiqani saqlashda xatolik yuz berdi");
+    }
   };
 
-  // Handle Custom Audio Upload (MP3, WAV, etc.)
+  // Handle Custom Audio Upload (MP3, WAV, M4A, OGG, AAC)
   const handleCustomAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const inputEl = e.target;
+    const file = inputEl.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("audio/") && !file.name.match(/\.(mp3|wav|m4a|ogg|aac)$/i)) {
-      toast.error("Faqat audio fayllar (MP3, WAV, M4A, OGG) qabul qilinadi");
+    if (
+      !file.type.startsWith("audio/") &&
+      !file.name.match(/\.(mp3|wav|m4a|ogg|aac|flac|weba)$/i)
+    ) {
+      toast.error("Faqat audio fayllar (MP3, WAV, M4A, OGG, AAC) qabul qilinadi");
+      inputEl.value = "";
       return;
     }
 
     if (file.size > 25 * 1024 * 1024) {
       toast.error("Fayl hajmi 25MB dan oshmasligi kerak");
+      inputEl.value = "";
       return;
     }
 
@@ -357,35 +446,41 @@ export default function MusicStudioPage() {
       if (!res.ok) throw new Error(json.error || "Fayl yuklashda xatolik");
 
       const fileUrl = json.url || json.publicUrl;
+      const storedTrackUrl = fileUrl.startsWith("data:")
+        ? "custom-audio://uploaded"
+        : fileUrl;
       const cleanTitle = file.name.replace(/\.[^/.]+$/, "");
+      const defaultCover =
+        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80";
 
-      setTrackUrl(fileUrl);
+      setTrackUrl(storedTrackUrl);
       setTrackTitle(cleanTitle);
       setTrackArtist("Shaxsiy Audio");
-      setTrackImage("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80");
+      setTrackImage(defaultCover);
       setTrackPreview(fileUrl);
       setEnabled(true);
       setTrimStart(0);
       setTrimEnd(30);
 
-      updateTheme({
+      await persistMusicToServer({
         spotifyMusicEnabled: true,
-        spotifyTrackUrl: fileUrl,
+        spotifyTrackUrl: storedTrackUrl,
         spotifyTrackTitle: cleanTitle,
         spotifyTrackArtist: "Shaxsiy Audio",
-        spotifyTrackImage: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80",
+        spotifyTrackImage: defaultCover,
         spotifyTrackPreview: fileUrl,
       });
 
-      toast.success("Shaxsiy musiqangiz yuklandi va profilga biriktirildi! 🎵 'Saqlash' tugmasini bosing.");
+      toast.success("Shaxsiy musiqangiz yuklandi va profilga saqlandi! 🎵");
     } catch (err: any) {
       toast.error(err.message || "Audio yuklashda xatolik yuz berdi");
     } finally {
       setIsUploadingAudio(false);
+      inputEl.value = "";
     }
   };
 
-  const handleRemoveTrack = () => {
+  const handleRemoveTrack = async () => {
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       setPreviewingId(null);
@@ -400,17 +495,23 @@ export default function MusicStudioPage() {
     setTrackArtist(null);
     setTrackImage(null);
     setTrackPreview(null);
+    setEnabled(false);
     setTrimStart(0);
     setTrimEnd(30);
 
-    updateTheme({
-      spotifyTrackUrl: null,
-      spotifyTrackTitle: null,
-      spotifyTrackArtist: null,
-      spotifyTrackImage: null,
-      spotifyTrackPreview: null,
-    });
-    toast.info("Musiqa o'chirildi");
+    try {
+      await persistMusicToServer({
+        spotifyMusicEnabled: false,
+        spotifyTrackUrl: null,
+        spotifyTrackTitle: null,
+        spotifyTrackArtist: null,
+        spotifyTrackImage: null,
+        spotifyTrackPreview: null,
+      });
+      toast.info("Musiqa o'chirildi");
+    } catch (err: any) {
+      toast.error(err.message || "O'chirishda xatolik");
+    }
   };
 
   // Save changes to database
@@ -421,25 +522,7 @@ export default function MusicStudioPage() {
         ? `${trackPreview.split("#")[0]}#t=${trimStart},${trimEnd}`
         : null;
 
-      const res = await fetch("/api/theme", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spotifyMusicEnabled: enabled,
-          spotifyTrackUrl: trackUrl,
-          spotifyTrackTitle: trackTitle,
-          spotifyTrackArtist: trackArtist,
-          spotifyTrackImage: trackImage,
-          spotifyTrackPreview: previewWithTrim,
-          spotifyMusicLayout: layout,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Musiqa sozlamalarini saqlab bo'lmadi");
-      }
-
-      updateTheme({
+      await persistMusicToServer({
         spotifyMusicEnabled: enabled,
         spotifyTrackUrl: trackUrl,
         spotifyTrackTitle: trackTitle,
@@ -511,9 +594,14 @@ export default function MusicStudioPage() {
                 </div>
                 <Switch
                   checked={enabled}
-                  onCheckedChange={(val) => {
+                  onCheckedChange={async (val) => {
                     setEnabled(val);
-                    updateTheme({ spotifyMusicEnabled: val });
+                    try {
+                      await persistMusicToServer({ spotifyMusicEnabled: val });
+                      toast.success(val ? "Profil musiqasi yoqildi" : "Profil musiqasi o'chirildi");
+                    } catch (err: any) {
+                      toast.error(err.message || "Saqlashda xatolik");
+                    }
                   }}
                   className="shrink-0"
                   aria-label="Toggle profile music"
@@ -625,7 +713,7 @@ export default function MusicStudioPage() {
                       <input
                         type="range"
                         min={0}
-                        max={25}
+                        max={Math.max(25, maxDuration - 2)}
                         step={1}
                         value={trimStart}
                         onChange={(e) => handleTrimChange(parseInt(e.target.value, 10), trimEnd)}
@@ -644,7 +732,7 @@ export default function MusicStudioPage() {
                       <input
                         type="range"
                         min={5}
-                        max={30}
+                        max={maxDuration}
                         step={1}
                         value={trimEnd}
                         onChange={(e) => handleTrimChange(trimStart, parseInt(e.target.value, 10))}
@@ -746,7 +834,7 @@ export default function MusicStudioPage() {
                     )}
                   >
                     <Upload className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">MP3 yuklash</span>
+                    <span className="truncate">Audio yuklash</span>
                   </button>
                 </div>
               </div>
@@ -979,12 +1067,12 @@ export default function MusicStudioPage() {
                           ) : (
                             <>
                               <Upload className="h-3.5 w-3.5" />
-                              <span>MP3 fayl tanlash</span>
+                              <span>Audio fayl tanlash (MP3, M4A, WAV)</span>
                             </>
                           )}
                           <input
                             type="file"
-                            accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/ogg,.mp3,.wav,.m4a"
+                            accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac,.weba"
                             disabled={isUploadingAudio}
                             onChange={handleCustomAudioUpload}
                             className="hidden"
@@ -1014,9 +1102,11 @@ export default function MusicStudioPage() {
               <div className="p-5 sm:p-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setLayout("floating");
-                    updateTheme({ spotifyMusicLayout: "floating" });
+                    try {
+                      await persistMusicToServer({ spotifyMusicLayout: "floating" });
+                    } catch {}
                   }}
                   className={cn(
                     "flex items-start gap-3 rounded-2xl border p-4 text-left transition-all",
@@ -1040,9 +1130,11 @@ export default function MusicStudioPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setLayout("card");
-                    updateTheme({ spotifyMusicLayout: "card" });
+                    try {
+                      await persistMusicToServer({ spotifyMusicLayout: "card" });
+                    } catch {}
                   }}
                   className={cn(
                     "flex items-start gap-3 rounded-2xl border p-4 text-left transition-all",
@@ -1111,7 +1203,7 @@ export default function MusicStudioPage() {
                   <div className="h-9 w-full rounded-xl bg-white/10" />
 
                   {/* If Embedded Card mode */}
-                  {enabled && layout === "card" && trackUrl && (
+                  {enabled && layout === "card" && (trackUrl || trackTitle || trackPreview) && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2 text-center animate-in fade-in">
                       <div className="flex items-center gap-2">
                         {trackImage && (
@@ -1135,7 +1227,7 @@ export default function MusicStudioPage() {
                 </div>
 
                 {/* If Floating Pill mode */}
-                {enabled && layout === "floating" && trackUrl && (
+                {enabled && layout === "floating" && (trackUrl || trackTitle || trackPreview) && (
                   <div className="absolute bottom-6 inset-x-3 rounded-xl border border-white/20 bg-zinc-900/90 p-2 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-2">
                       <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-emerald-600">

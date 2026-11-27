@@ -19,7 +19,7 @@ import {
   ArrowRight,
   Info,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { toast } from "sonner";
 import { PRODUCT_TYPES, ProductType, formatCurrency } from "@/lib/store/config";
 import { cn } from "@/lib/utils";
@@ -353,9 +353,7 @@ export function ProductCheckoutModal({
                 <div className="flex items-center gap-1.5 truncate text-xs font-bold text-white">
                   <span>{seller.displayName || `@${seller.username}`}</span>
                   {seller.isVerified && (
-                    <Badge variant="verified" className="px-1.5 py-0 text-[9px]">
-                      Verified
-                    </Badge>
+                    <VerifiedBadge size="xs" />
                   )}
                 </div>
                 <p className="truncate text-[10px] text-zinc-400">Creator on BioSpace</p>

@@ -5,6 +5,7 @@ import { PhoneMockup } from "@/components/marketing/phone-mockup";
 import { useDashboard } from "@/context/dashboard-context";
 import { useI18n } from "@/components/i18n-provider";
 import { ExternalLink, X, Smartphone } from "lucide-react";
+import { isPremiumTier } from "@/lib/utils";
 
 export function DashboardPreviewPanel() {
   const { t } = useI18n();
@@ -12,6 +13,7 @@ export function DashboardPreviewPanel() {
     profile,
     theme,
     links,
+    subscriptionTier,
     isMobilePreviewOpen,
     setIsMobilePreviewOpen,
   } = useDashboard();
@@ -53,6 +55,13 @@ export function DashboardPreviewPanel() {
         gradientStyle: theme.gradientStyle || undefined,
         gradientColor: theme.gradientColor || undefined,
         gradientDirection: theme.gradientDirection || undefined,
+        spotifyMusicEnabled: Boolean(theme.spotifyMusicEnabled),
+        spotifyTrackTitle: theme.spotifyTrackTitle || null,
+        spotifyTrackArtist: theme.spotifyTrackArtist || null,
+        spotifyTrackImage: theme.spotifyTrackImage || null,
+        spotifyTrackUrl: theme.spotifyTrackUrl || null,
+        spotifyTrackPreview: theme.spotifyTrackPreview || null,
+        spotifyMusicLayout: theme.spotifyMusicLayout || "floating",
       }
     : undefined;
 
@@ -88,7 +97,7 @@ export function DashboardPreviewPanel() {
               avatarUrl={profile?.avatarUrl || undefined}
               bannerUrl={profile?.bannerUrl}
               layout={profile?.layout || "classic"}
-              verified={profile?.verified || false}
+              verified={Boolean(profile?.verified && isPremiumTier(subscriptionTier))}
               theme={activeTheme}
               links={enabledLinks.map((l) => ({
                 id: l.id,
@@ -130,7 +139,7 @@ export function DashboardPreviewPanel() {
                 avatarUrl={profile?.avatarUrl || undefined}
                 bannerUrl={profile?.bannerUrl}
                 layout={profile?.layout || "classic"}
-                verified={profile?.verified || false}
+                verified={Boolean(profile?.verified && isPremiumTier(subscriptionTier))}
                 theme={activeTheme}
                 links={enabledLinks.map((l) => ({
                   id: l.id,

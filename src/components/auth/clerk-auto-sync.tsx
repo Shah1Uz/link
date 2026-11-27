@@ -6,10 +6,11 @@ import { useDashboard } from "@/context/dashboard-context";
 
 export function ClerkProfileAutoSync() {
   const { user: clerkUser, isLoaded } = useUser();
-  const { profile, updateProfile } = useDashboard();
+  const { profile, updateProfile, impersonatedBy } = useDashboard();
   const hasSynced = useRef(false);
 
   useEffect(() => {
+    if (impersonatedBy) return;
     if (!isLoaded || !clerkUser || hasSynced.current) return;
 
     const rawUsername =

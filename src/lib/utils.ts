@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function isPremiumTier(tier?: string | null): boolean {
+  const clean = (tier || "").toUpperCase();
+  return clean === "PRO" || clean === "BUSINESS";
+}
+
 export type PlatformType =
   | "instagram"
   | "tiktok"

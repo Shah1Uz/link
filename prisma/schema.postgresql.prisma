@@ -193,6 +193,7 @@ model Theme {
   spotifyTrackTitle    String?
   spotifyTrackArtist   String?
   spotifyTrackImage    String?
+  spotifyTrackPreview  String?
   spotifyMusicLayout   String   @default("floating") // "floating" | "card"
   spotifyMusicAutoplay Boolean  @default(false)
 

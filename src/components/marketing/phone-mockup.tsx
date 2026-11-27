@@ -2,13 +2,15 @@
 
 import React, { useState } from "react";
 import {
-  CheckCircle2,
   Share2,
   Sparkles,
   Signal,
   Wifi,
   BatteryMedium,
+  Music,
+  Play,
 } from "lucide-react";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { PlatformIcon } from "@/components/shared/platform-icon";
 import { YouTubeEmbed } from "@/components/shared/youtube-embed";
 import { InstagramEmbed } from "@/components/shared/instagram-embed";
@@ -61,6 +63,13 @@ interface PhoneMockupProps {
     gradientStyle?: string | null;
     gradientColor?: string | null;
     gradientDirection?: string | null;
+    spotifyMusicEnabled?: boolean;
+    spotifyTrackTitle?: string | null;
+    spotifyTrackArtist?: string | null;
+    spotifyTrackImage?: string | null;
+    spotifyTrackUrl?: string | null;
+    spotifyTrackPreview?: string | null;
+    spotifyMusicLayout?: string | null;
   };
   links?: Array<{
     id: string;
@@ -426,12 +435,7 @@ export function PhoneMockup({
                     >
                       {displayName}
                     </h2>
-                    {verified && (
-                      <CheckCircle2
-                        className="h-4 w-4 shrink-0"
-                        style={{ color: theme.accentColor || "#38bdf8" }}
-                      />
-                    )}
+                    {verified && <VerifiedBadge size="md" />}
                   </div>
                   <p
                     className="text-xs font-semibold opacity-90 drop-shadow-[0_1px_5px_rgba(0,0,0,0.85)]"
@@ -470,15 +474,18 @@ export function PhoneMockup({
                     />
                   </div>
 
-                  <h2
-                    className="mt-2 text-xl font-bold tracking-tight select-none"
-                    style={{
-                      fontFamily: getFontFamilyCss(theme.fontHeading),
-                      color: theme.textColor || "#ffffff",
-                    }}
-                  >
-                    {displayName}
-                  </h2>
+                  <div className="mt-2 flex items-center justify-center gap-1.5">
+                    <h2
+                      className="text-xl font-bold tracking-tight select-none"
+                      style={{
+                        fontFamily: getFontFamilyCss(theme.fontHeading),
+                        color: theme.textColor || "#ffffff",
+                      }}
+                    >
+                      {displayName}
+                    </h2>
+                    {verified && <VerifiedBadge size="sm" />}
+                  </div>
                   <p
                     className="text-xs font-medium opacity-75"
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
@@ -499,15 +506,18 @@ export function PhoneMockup({
                       className="h-full w-auto object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)] transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
-                  <h2
-                    className="mt-1 text-xl font-bold tracking-tight select-none"
-                    style={{
-                      fontFamily: getFontFamilyCss(theme.fontHeading),
-                      color: theme.textColor || "#ffffff",
-                    }}
-                  >
-                    {displayName}
-                  </h2>
+                  <div className="mt-1 flex items-center justify-center gap-1.5">
+                    <h2
+                      className="text-xl font-bold tracking-tight select-none"
+                      style={{
+                        fontFamily: getFontFamilyCss(theme.fontHeading),
+                        color: theme.textColor || "#ffffff",
+                      }}
+                    >
+                      {displayName}
+                    </h2>
+                    {verified && <VerifiedBadge size="sm" />}
+                  </div>
                   <p
                     className="text-xs font-medium opacity-75"
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
@@ -539,15 +549,18 @@ export function PhoneMockup({
                       />
                     </div>
                   </div>
-                  <h2
-                    className="mt-2 text-xl font-bold tracking-tight select-none"
-                    style={{
-                      fontFamily: getFontFamilyCss(theme.fontHeading),
-                      color: theme.textColor || "#ffffff",
-                    }}
-                  >
-                    {displayName}
-                  </h2>
+                  <div className="mt-2 flex items-center justify-center gap-1.5">
+                    <h2
+                      className="text-xl font-bold tracking-tight select-none"
+                      style={{
+                        fontFamily: getFontFamilyCss(theme.fontHeading),
+                        color: theme.textColor || "#ffffff",
+                      }}
+                    >
+                      {displayName}
+                    </h2>
+                    {verified && <VerifiedBadge size="sm" />}
+                  </div>
                   <p
                     className="text-xs font-medium opacity-75"
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
@@ -582,12 +595,7 @@ export function PhoneMockup({
                     >
                       {displayName}
                     </h2>
-                    {verified && (
-                      <CheckCircle2
-                        className="h-4 w-4 shrink-0"
-                        style={{ color: theme.accentColor || "#38bdf8" }}
-                      />
-                    )}
+                    {verified && <VerifiedBadge size="md" />}
                   </div>
                   <p
                     className={`text-xs font-medium opacity-75 ${classicVideoUrl ? "drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]" : ""
@@ -609,6 +617,37 @@ export function PhoneMockup({
                 </p>
               )}
             </div>
+
+            {/* Spotify Card Music Player Preview */}
+            {theme.spotifyMusicEnabled &&
+              theme.spotifyMusicLayout === "card" &&
+              (theme.spotifyTrackTitle || theme.spotifyTrackUrl || theme.spotifyTrackPreview) && (
+                <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-white/15 bg-zinc-950/85 p-2.5 text-left text-white shadow-lg backdrop-blur-md">
+                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-emerald-600/30">
+                    {theme.spotifyTrackImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={theme.spotifyTrackImage}
+                        alt={theme.spotifyTrackTitle || "Music"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Music className="h-4 w-4 text-emerald-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold leading-tight text-white">
+                      {theme.spotifyTrackTitle || "Profil Musiqasi"}
+                    </p>
+                    <p className="truncate text-[9.5px] text-zinc-400">
+                      {theme.spotifyTrackArtist || "Spotify / Audio"}
+                    </p>
+                  </div>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-zinc-950">
+                    <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                  </span>
+                </div>
+              )}
 
             {/* Links Section */}
             <div className="mt-5 flex flex-1 flex-col gap-2.5">
@@ -763,6 +802,37 @@ export function PhoneMockup({
                 </div>
               </div>
             )}
+
+            {/* Floating Music Pill Preview */}
+            {theme.spotifyMusicEnabled &&
+              theme.spotifyMusicLayout !== "card" &&
+              (theme.spotifyTrackTitle || theme.spotifyTrackUrl || theme.spotifyTrackPreview) && (
+                <div className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-2xl border border-white/15 bg-zinc-950/90 p-2 text-left text-white shadow-xl backdrop-blur-xl">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-emerald-600/30">
+                    {theme.spotifyTrackImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={theme.spotifyTrackImage}
+                        alt={theme.spotifyTrackTitle || "Music"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Music className="h-3.5 w-3.5 text-emerald-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[10px] font-bold leading-tight text-white">
+                      {theme.spotifyTrackTitle || "Profil Musiqasi"}
+                    </p>
+                    <p className="truncate text-[8.5px] text-zinc-400">
+                      {theme.spotifyTrackArtist || "Spotify / Audio"}
+                    </p>
+                  </div>
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-zinc-950">
+                    <Play className="h-3 w-3 fill-current ml-0.5" />
+                  </span>
+                </div>
+              )}
           </div>
         </div>
       </div>

@@ -106,6 +106,7 @@ interface DashboardContextType {
   isAdmin?: boolean;
   userEmail?: string;
   userRole?: string;
+  impersonatedBy?: { id: string; email: string; name: string | null } | null;
   isMobilePreviewOpen: boolean;
   setIsMobilePreviewOpen: (open: boolean) => void;
   updateProfile: (data: Partial<ProfileData>) => void;
@@ -146,6 +147,7 @@ export function DashboardProvider({
   isAdmin = false,
   userEmail,
   userRole,
+  impersonatedBy = null,
 }: {
   children: React.ReactNode;
   initialProfile: ProfileData | null;
@@ -156,6 +158,7 @@ export function DashboardProvider({
   isAdmin?: boolean;
   userEmail?: string;
   userRole?: string;
+  impersonatedBy?: { id: string; email: string; name: string | null } | null;
 }) {
   const [profile, setProfile] = useState<ProfileData | null>(initialProfile);
   const [theme, setTheme] = useState<ThemeData | null>(initialTheme);
@@ -166,6 +169,7 @@ export function DashboardProvider({
   const [isAdminUser] = useState<boolean>(Boolean(isAdmin));
   const [userEmailVal] = useState<string | undefined>(userEmail);
   const [userRoleVal] = useState<string | undefined>(userRole);
+  const [impersonatedByVal] = useState<{ id: string; email: string; name: string | null } | null>(impersonatedBy);
 
   const updateProfile = (data: Partial<ProfileData>) => {
     setProfile((prev) => {
@@ -220,6 +224,7 @@ export function DashboardProvider({
         isAdmin: isAdminUser,
         userEmail: userEmailVal,
         userRole: userRoleVal,
+        impersonatedBy: impersonatedByVal,
         isMobilePreviewOpen,
         setIsMobilePreviewOpen,
         updateProfile,

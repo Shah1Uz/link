@@ -14,6 +14,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { Save, User, Sparkles, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { HeaderLayoutCard } from "@/components/dashboard/header-layout-card";
+import { isPremiumTier } from "@/lib/utils";
 
 const categories = [
   "CREATOR",
@@ -67,7 +68,7 @@ export default function BioEditPage() {
           category,
           layout,
           isPublished,
-          verified: subscriptionTier === "PRO" ? verified : undefined,
+          verified: isPremiumTier(subscriptionTier) ? verified : undefined,
         }),
       });
 
@@ -81,7 +82,7 @@ export default function BioEditPage() {
         category,
         layout,
         isPublished,
-        verified: subscriptionTier === "PRO" ? verified : profile?.verified,
+        verified: isPremiumTier(subscriptionTier) ? verified : false,
       });
 
       toast.success("Profile updated successfully!");
@@ -269,7 +270,7 @@ export default function BioEditPage() {
                     <h4 className="text-[13px] font-bold text-foreground">
                       Verified creator badge
                     </h4>
-                    {subscriptionTier === "PRO" ? (
+                    {isPremiumTier(subscriptionTier) ? (
                       <Badge variant="verified" className="text-[9px]">
                         PRO ACTIVE
                       </Badge>
@@ -284,8 +285,8 @@ export default function BioEditPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={verified}
-                  disabled={subscriptionTier !== "PRO"}
+                  checked={isPremiumTier(subscriptionTier) && verified}
+                  disabled={!isPremiumTier(subscriptionTier)}
                   onCheckedChange={(val) => {
                     setVerified(val);
                     updateProfile({ verified: val });

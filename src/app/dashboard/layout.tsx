@@ -8,6 +8,7 @@ import { DashboardPreviewPanel } from "@/components/dashboard/dashboard-preview-
 import { DashboardMobileNav } from "@/components/layout/dashboard-mobile-nav";
 import { ClerkProfileAutoSync } from "@/components/auth/clerk-auto-sync";
 import { DashboardTourWrapper } from "@/components/dashboard/dashboard-tour-wrapper";
+import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function DashboardLayout({
       isAdmin={isAdmin}
       userEmail={user.email}
       userRole={user.role}
+      impersonatedBy={user.impersonatedBy || null}
     >
       <ClerkProfileAutoSync />
       <DashboardTourWrapper />
@@ -90,6 +92,7 @@ export default async function DashboardLayout({
 
         {/* Center Main Editing Area */}
         <div className="relative z-10 flex min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden">
+          <ImpersonationBanner />
           <main className="flex-1 min-w-0 w-full max-w-full pb-24 lg:pb-16">{children}</main>
         </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { profileUpdateSchema } from "@/lib/validations";
+import { isPremiumTier } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
       profile = await prisma.profile.findUnique({
         where: { username: searchUsername.toLowerCase() },
         include: {
+          user: { select: { subscriptionTier: true } },
           theme: true,
           links: {
             where: { isEnabled: true },
@@ -34,6 +36,7 @@ export async function GET(req: NextRequest) {
       profile = await prisma.profile.findUnique({
         where: { userId: user.id },
         include: {
+          user: { select: { subscriptionTier: true } },
           theme: true,
           links: {
             orderBy: [{ isPinned: "desc" }, { position: "asc" }],
@@ -45,9 +48,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (profile) {
+      profile = {
+        ...profile,
+        verified: Boolean(profile.verified && isPremiumTier(profile.user?.subscriptionTier)),
+      };
+    }
+
     let theme: any = profile?.theme;
     if (theme) {
-      let backgroundVideo: string | null = null;
       let heroBlur = "16px";
       let heroFade = "high";
       let heroDarken = "balanced";
@@ -69,12 +78,13 @@ export async function GET(req: NextRequest) {
       let gradientColor = "#778a00";
       let gradientDirection = "radial";
       try {
-        const rawRes: any = await prisma.$queryRawUnsafe(
-          "SELECT \"backgroundVideo\", \"heroBlur\", \"heroFade\", \"heroDarken\", \"stickersEnabled\", \"stickerId\", \"stickerUrl\", \"stickerText\", \"stickerPosition\", \"stickerAnimation\", \"stickerSize\", \"stickerRotation\", \"stickerLink\", \"stickerPosX\", \"stickerPosY\", \"wallpaperEffect\", \"wallpaperTint\", \"wallpaperNoise\", \"gradientStyle\", \"gradientColor\", \"gradientDirection\" FROM \"Theme\" WHERE \"profileId\" = ? LIMIT 1",
-          profile?.id
-        );
+        const rawRes: any = await prisma.$queryRaw`
+          SELECT "heroBlur", "heroFade", "heroDarken", "stickersEnabled", "stickerId", "stickerUrl", "stickerText", "stickerPosition", "stickerAnimation", "stickerSize", "stickerRotation", "stickerLink", "stickerPosX", "stickerPosY", "wallpaperEffect", "wallpaperTint", "wallpaperNoise", "gradientStyle", "gradientColor", "gradientDirection"
+          FROM "Theme"
+          WHERE "profileId" = ${profile?.id}
+          LIMIT 1
+        `;
         if (rawRes?.[0]) {
-          if (rawRes[0].backgroundVideo) backgroundVideo = rawRes[0].backgroundVideo;
           if (rawRes[0].heroBlur) heroBlur = rawRes[0].heroBlur;
           if (rawRes[0].heroFade) heroFade = rawRes[0].heroFade;
           if (rawRes[0].heroDarken) heroDarken = rawRes[0].heroDarken;
@@ -121,7 +131,6 @@ export async function GET(req: NextRequest) {
         gradientStyle,
         gradientColor,
         gradientDirection,
-        backgroundVideo: backgroundVideo || null,
       };
     }
 

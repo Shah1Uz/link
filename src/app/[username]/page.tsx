@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { PublicProfileView } from "@/components/profile/public-profile-view";
 import { isReservedUsername } from "@/lib/validations";
+import { isPremiumTier } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -75,6 +76,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   let profile = await prisma.profile.findUnique({
     where: { username: cleanUsername },
     include: {
+      user: { select: { subscriptionTier: true } },
       theme: true,
       links: {
         where: { isEnabled: true },
@@ -102,6 +104,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         },
       },
       include: {
+        user: { select: { subscriptionTier: true } },
         theme: true,
         links: {
           where: { isEnabled: true },
@@ -124,48 +127,40 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   let theme: any = profile.theme;
   if (theme) {
-    let backgroundVideo: string | null = null;
-    let spotifyData: any = {};
     let heroData: any = {
       heroBlur: "16px",
       heroFade: "high",
       heroDarken: "balanced",
     };
     try {
-      const rawRes: any = await prisma.$queryRawUnsafe(
-        "SELECT \"backgroundVideo\", \"spotifyMusicEnabled\", \"spotifyTrackUrl\", \"spotifyTrackTitle\", \"spotifyTrackArtist\", \"spotifyTrackImage\", \"spotifyTrackPreview\", \"spotifyMusicLayout\", \"spotifyMusicAutoplay\", \"heroBlur\", \"heroFade\", \"heroDarken\" FROM \"Theme\" WHERE \"profileId\" = ? LIMIT 1",
-        profile.id
-      );
+      const rawRes: any = await prisma.$queryRaw`
+        SELECT "heroBlur", "heroFade", "heroDarken"
+        FROM "Theme"
+        WHERE "profileId" = ${profile.id}
+        LIMIT 1
+      `;
       if (rawRes?.[0]) {
-        if (rawRes[0].backgroundVideo) {
-          backgroundVideo = rawRes[0].backgroundVideo;
-        }
         if (rawRes[0].heroBlur) heroData.heroBlur = rawRes[0].heroBlur;
         if (rawRes[0].heroFade) heroData.heroFade = rawRes[0].heroFade;
         if (rawRes[0].heroDarken) heroData.heroDarken = rawRes[0].heroDarken;
-        spotifyData = {
-          spotifyMusicEnabled: Boolean(rawRes[0].spotifyMusicEnabled),
-          spotifyTrackUrl: rawRes[0].spotifyTrackUrl || null,
-          spotifyTrackTitle: rawRes[0].spotifyTrackTitle || null,
-          spotifyTrackArtist: rawRes[0].spotifyTrackArtist || null,
-          spotifyTrackImage: rawRes[0].spotifyTrackImage || null,
-          spotifyTrackPreview: rawRes[0].spotifyTrackPreview || null,
-          spotifyMusicLayout: rawRes[0].spotifyMusicLayout || "floating",
-          spotifyMusicAutoplay: Boolean(rawRes[0].spotifyMusicAutoplay),
-        };
       }
     } catch {}
     theme = {
       ...theme,
-      ...spotifyData,
       ...heroData,
-      backgroundVideo: backgroundVideo || null,
     };
   }
 
+  const sanitizedProfile = {
+    ...profile,
+    verified: Boolean(
+      profile.verified && isPremiumTier(profile.user?.subscriptionTier)
+    ),
+  };
+
   return (
     <PublicProfileView
-      profile={profile}
+      profile={sanitizedProfile}
       theme={theme}
       links={profile.links}
       collections={profile.collections}

@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Volume2,
   VolumeX,
-  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,17 +28,38 @@ interface SpotifyMusicPlayerProps {
   };
 }
 
+function isDirectAudioUrl(url?: string | null): boolean {
+  if (!url) return false;
+  const clean = url.split("#")[0].split("?")[0].toLowerCase();
+  return (
+    url.startsWith("/uploads/") ||
+    url.startsWith("data:audio/") ||
+    /\.(mp3|wav|m4a|ogg|aac|flac|weba)$/.test(clean)
+  );
+}
+
+function getSpotifyEmbedUrl(url?: string | null): string | null {
+  if (!url) return null;
+  const normalized = url.replace(/open\.spotify\.com\/intl-[a-z-]+\//i, "open.spotify.com/");
+  const match = normalized.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/i);
+  if (!match) return null;
+  return `https://open.spotify.com/embed/${match[1].toLowerCase()}/${match[2]}?utm_source=generator&theme=0`;
+}
+
 export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
+  const initialAudio =
+    theme?.spotifyTrackPreview ||
+    (isDirectAudioUrl(theme?.spotifyTrackUrl) ? theme.spotifyTrackUrl || null : null);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [showEmbedPlayer, setShowEmbedPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(30);
   const [mounted, setMounted] = useState(false);
-  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(
-    theme?.spotifyTrackPreview || null
-  );
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(initialAudio);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -47,19 +67,36 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     setMounted(true);
   }, []);
 
-  // Update resolvedAudioUrl when theme prop changes
+  // Sync resolvedAudioUrl when theme prop changes
   useEffect(() => {
     if (theme?.spotifyTrackPreview) {
       setResolvedAudioUrl(theme.spotifyTrackPreview);
+    } else if (isDirectAudioUrl(theme?.spotifyTrackUrl)) {
+      setResolvedAudioUrl(theme.spotifyTrackUrl || null);
+    } else {
+      setResolvedAudioUrl(null);
     }
-  }, [theme?.spotifyTrackPreview]);
+  }, [theme?.spotifyTrackPreview, theme?.spotifyTrackUrl]);
 
-  // If theme did not have previewUrl, fetch it dynamically by track title + artist
+  // If theme has a track title without preview audio, look up preview audio dynamically
   useEffect(() => {
-    if (!resolvedAudioUrl && theme?.spotifyTrackTitle) {
-      const q = `${theme.spotifyTrackTitle} ${theme.spotifyTrackArtist || ""}`.trim();
+    if (
+      !resolvedAudioUrl &&
+      theme?.spotifyMusicEnabled &&
+      theme?.spotifyTrackTitle &&
+      !isDirectAudioUrl(theme?.spotifyTrackUrl)
+    ) {
+      const artistPart =
+        theme.spotifyTrackArtist &&
+        theme.spotifyTrackArtist !== "Spotify Track" &&
+        theme.spotifyTrackArtist !== "Spotify Collection"
+          ? theme.spotifyTrackArtist
+          : "";
+      const q = `${theme.spotifyTrackTitle} ${artistPart}`.trim();
+      if (!q) return;
+
       fetch(`/api/spotify/resolve?q=${encodeURIComponent(q)}`)
-        .then((res) => res.json())
+        .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data?.results?.[0]?.previewUrl) {
             setResolvedAudioUrl(data.results[0].previewUrl);
@@ -67,7 +104,13 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
         })
         .catch(() => {});
     }
-  }, [resolvedAudioUrl, theme?.spotifyTrackTitle, theme?.spotifyTrackArtist]);
+  }, [
+    resolvedAudioUrl,
+    theme?.spotifyMusicEnabled,
+    theme?.spotifyTrackTitle,
+    theme?.spotifyTrackArtist,
+    theme?.spotifyTrackUrl,
+  ]);
 
   const hashMatch = resolvedAudioUrl?.match(/[#?]t=([0-9.]+)(?:,([0-9.]+))?/);
   const trimStart = hashMatch ? parseFloat(hashMatch[1]) : 0;
@@ -83,6 +126,9 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
       if (trimStart > 0) {
         audio.currentTime = trimStart;
       }
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(trimEnd ? Math.min(trimEnd, audio.duration) - trimStart : audio.duration);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -93,7 +139,7 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
         setIsPlaying(false);
       }
       if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(trimEnd ? trimEnd - trimStart : audio.duration);
+        setDuration(trimEnd ? Math.min(trimEnd, audio.duration) - trimStart : audio.duration);
       }
     };
     const handleEnded = () => {
@@ -109,6 +155,10 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("play", handlePlay);
 
+    if (theme?.spotifyMusicAutoplay) {
+      audio.play().catch(() => {});
+    }
+
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
@@ -116,7 +166,7 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("play", handlePlay);
     };
-  }, [mounted, resolvedAudioUrl, trimStart, trimEnd]);
+  }, [mounted, resolvedAudioUrl, trimStart, trimEnd, theme?.spotifyMusicAutoplay]);
 
   if (!mounted) return null;
 
@@ -130,22 +180,36 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     return null;
   }
 
-  if (!trackUrl && !trackTitle) {
+  if (!trackUrl && !trackTitle && !resolvedAudioUrl) {
     return null;
   }
 
+  const spotifyEmbedUrl = getSpotifyEmbedUrl(trackUrl);
   const spotifyDirectUrl =
-    trackUrl || `https://open.spotify.com/search/${encodeURIComponent(`${trackTitle} ${trackArtist}`)}`;
+    trackUrl ||
+    `https://open.spotify.com/search/${encodeURIComponent(`${trackTitle} ${trackArtist}`)}`;
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const audio = audioRef.current;
-    if (!audio) return;
+
+    if (!audio || !rawAudioUrl) {
+      if (spotifyEmbedUrl) {
+        setShowEmbedPlayer((prev) => !prev);
+        setIsExpanded(true);
+        return;
+      }
+      window.open(spotifyDirectUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
 
     if (isPlaying) {
       audio.pause();
     } else {
-      if (trimStart > 0 && (audio.currentTime < trimStart || (trimEnd && audio.currentTime >= trimEnd))) {
+      if (
+        trimStart > 0 &&
+        (audio.currentTime < trimStart || (trimEnd && audio.currentTime >= trimEnd))
+      ) {
         audio.currentTime = trimStart;
       }
       audio.play().catch((err) => {
@@ -171,8 +235,9 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
   };
 
   const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
+    const safe = Math.max(0, secs);
+    const m = Math.floor(safe / 60);
+    const s = Math.floor(safe % 60);
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
@@ -188,13 +253,13 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
           <audio
             ref={audioRef}
             src={rawAudioUrl}
-            preload="auto"
+            preload="metadata"
             muted={isMuted}
           />
         )}
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          {/* Artwork with spinning vinyl record effect when playing */}
+          {/* Artwork with play toggle */}
           <div
             onClick={togglePlay}
             className="group relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-xl transition-transform active:scale-95"
@@ -216,7 +281,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               </div>
             )}
 
-            {/* Play/Pause Hover Overlay */}
             <div
               className={cn(
                 "absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity duration-200",
@@ -233,7 +297,7 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
             </div>
           </div>
 
-          {/* Track Details & Realtime Audio Visualizer */}
+          {/* Track Details & Audio Scrubber */}
           <div className="min-w-0 flex-1 w-full text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-between gap-2">
               <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
@@ -246,7 +310,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
                 <span>{isPlaying ? "Ijro etilmoqda" : "Profil Musiqasi"}</span>
               </div>
 
-              {/* Dancing soundwave equalizer bars */}
               <div className="hidden sm:flex items-end gap-0.5 h-3.5">
                 {[40, 90, 60, 100, 75, 45, 85].map((h, i) => (
                   <span
@@ -271,27 +334,34 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               {trackArtist}
             </p>
 
-            {/* Scrubber Progress Bar */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] tabular-nums text-zinc-400">
-                {formatTime(currentTime)}
-              </span>
-              <input
-                type="range"
-                min="0"
-                max={duration || 30}
-                step="0.1"
-                value={currentTime}
-                onChange={handleSeek}
-                className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/20 accent-emerald-400 transition-all focus:outline-none"
-              />
-              <span className="text-[10px] tabular-nums text-zinc-400">
-                {formatTime(duration)}
-              </span>
-            </div>
+            {rawAudioUrl ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] tabular-nums text-zinc-400">
+                  {formatTime(currentTime)}
+                </span>
+                <input
+                  type="range"
+                  min={trimStart}
+                  max={trimEnd || (duration > trimStart ? trimStart + duration : 30)}
+                  step="0.1"
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/20 accent-emerald-400 transition-all focus:outline-none"
+                />
+                <span className="text-[10px] tabular-nums text-zinc-400">
+                  {formatTime(duration)}
+                </span>
+              </div>
+            ) : (
+              <p className="text-[11px] text-zinc-400">
+                {spotifyEmbedUrl
+                  ? "Spotify pleyerda tinglash uchun ▶ tugmasini bosing"
+                  : "Spotify orqali tinglash"}
+              </p>
+            )}
           </div>
 
-          {/* Big Action Controls */}
+          {/* Action Controls */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
@@ -306,26 +376,46 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
-              title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
-            >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </button>
+            {rawAudioUrl && (
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+                title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            )}
 
-            <a
-              href={spotifyDirectUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
-              title="Spotify'da ochish"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
+            {spotifyDirectUrl && !isDirectAudioUrl(spotifyDirectUrl) && (
+              <a
+                href={spotifyDirectUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+                title="Spotify'da ochish"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
           </div>
         </div>
+
+        {/* Embedded Spotify Player when no direct audio MP3 preview is available */}
+        {!rawAudioUrl && spotifyEmbedUrl && showEmbedPlayer && (
+          <div className="mt-3 pt-3 border-t border-white/10 animate-in fade-in">
+            <iframe
+              src={spotifyEmbedUrl}
+              width="100%"
+              height="152"
+              frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+              className="w-full rounded-xl"
+              title={trackTitle}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -345,7 +435,7 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
         <audio
           ref={audioRef}
           src={rawAudioUrl}
-          preload="auto"
+          preload="metadata"
           muted={isMuted}
         />
       )}
@@ -379,112 +469,124 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               </div>
             </div>
 
-            {/* Large Album Art */}
-            <div
-              onClick={togglePlay}
-              className="group relative mx-auto mb-3 h-32 w-32 cursor-pointer overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
-            >
-              {trackImage ? (
-                <Image
-                  src={trackImage}
-                  alt={trackTitle}
-                  fill
-                  className={cn(
-                    "object-cover transition-transform duration-700",
-                    isPlaying && "scale-105"
-                  )}
-                  unoptimized
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-emerald-600 to-teal-500">
-                  <Music className="h-10 w-10 text-white" />
-                </div>
-              )}
-
-              <div
-                className={cn(
-                  "absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity duration-200",
-                  isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-100"
-                )}
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-zinc-950 shadow-xl">
-                  {isPlaying ? (
-                    <Pause className="h-6 w-6 fill-current" />
+            {!rawAudioUrl && spotifyEmbedUrl ? (
+              <iframe
+                src={spotifyEmbedUrl}
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="w-full rounded-xl"
+                title={trackTitle}
+              />
+            ) : (
+              <>
+                <div
+                  onClick={togglePlay}
+                  className="group relative mx-auto mb-3 h-32 w-32 cursor-pointer overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+                >
+                  {trackImage ? (
+                    <Image
+                      src={trackImage}
+                      alt={trackTitle}
+                      fill
+                      className={cn(
+                        "object-cover transition-transform duration-700",
+                        isPlaying && "scale-105"
+                      )}
+                      unoptimized
+                    />
                   ) : (
-                    <Play className="h-6 w-6 fill-current ml-0.5" />
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-emerald-600 to-teal-500">
+                      <Music className="h-10 w-10 text-white" />
+                    </div>
+                  )}
+
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity duration-200",
+                      isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                    )}
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-zinc-950 shadow-xl">
+                      {isPlaying ? (
+                        <Pause className="h-6 w-6 fill-current" />
+                      ) : (
+                        <Play className="h-6 w-6 fill-current ml-0.5" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center mb-2">
+                  <h4 className="truncate text-sm font-extrabold text-white leading-tight">
+                    {trackTitle}
+                  </h4>
+                  <p className="truncate text-xs text-zinc-400">{trackArtist}</p>
+                </div>
+
+                <div className="mb-3 px-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] tabular-nums text-zinc-400">
+                      {formatTime(currentTime)}
+                    </span>
+                    <input
+                      type="range"
+                      min={trimStart}
+                      max={trimEnd || (duration > trimStart ? trimStart + duration : 30)}
+                      step="0.1"
+                      value={currentTime}
+                      onChange={handleSeek}
+                      className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/20 accent-emerald-400 focus:outline-none"
+                    />
+                    <span className="text-[10px] tabular-nums text-zinc-400">
+                      {formatTime(duration)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleMute}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/15"
+                    title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={togglePlay}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-zinc-950 font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95"
+                    title={isPlaying ? "To'xtatish" : "Tinglash"}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-6 w-6 fill-current" />
+                    ) : (
+                      <Play className="h-6 w-6 fill-current ml-0.5" />
+                    )}
+                  </button>
+
+                  {spotifyDirectUrl && !isDirectAudioUrl(spotifyDirectUrl) && (
+                    <a
+                      href={spotifyDirectUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/15 hover:text-white"
+                      title="Spotify'da ochish"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Title & Artist */}
-            <div className="text-center mb-2">
-              <h4 className="truncate text-sm font-extrabold text-white leading-tight">
-                {trackTitle}
-              </h4>
-              <p className="truncate text-xs text-zinc-400">{trackArtist}</p>
-            </div>
-
-            {/* Progress Scrubber */}
-            <div className="mb-3 px-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] tabular-nums text-zinc-400">
-                  {formatTime(currentTime)}
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 30}
-                  step="0.1"
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/20 accent-emerald-400 focus:outline-none"
-                />
-                <span className="text-[10px] tabular-nums text-zinc-400">
-                  {formatTime(duration)}
-                </span>
-              </div>
-            </div>
-
-            {/* Controls Bar */}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/15"
-                title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
-              >
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={togglePlay}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-zinc-950 font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95"
-                title={isPlaying ? "To'xtatish" : "Tinglash"}
-              >
-                {isPlaying ? (
-                  <Pause className="h-6 w-6 fill-current" />
-                ) : (
-                  <Play className="h-6 w-6 fill-current ml-0.5" />
-                )}
-              </button>
-
-              <a
-                href={spotifyDirectUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/15 hover:text-white"
-                title="Spotify'da ochish"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
+              </>
+            )}
           </div>
         ) : (
           /* COLLAPSED MINI FLOATING PILL */
           <div className="flex items-center gap-3 p-2 pr-3">
-            {/* Clickable Album Art that directly toggles playback */}
             <button
               type="button"
               onClick={togglePlay}
@@ -505,7 +607,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
                 </div>
               )}
 
-              {/* Play / Pause Overlay Icon */}
               <div
                 className={cn(
                   "absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity duration-200",
@@ -520,7 +621,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               </div>
             </button>
 
-            {/* Clickable Info area (opens expanded view) */}
             <div
               onClick={() => setIsExpanded(true)}
               className="min-w-0 cursor-pointer text-left transition-opacity hover:opacity-90"
@@ -536,7 +636,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
                   {trackTitle}
                 </span>
 
-                {/* Micro dancing equalizer */}
                 {isPlaying && (
                   <span className="flex items-end gap-0.5 h-2.5 ml-0.5">
                     <span className="w-0.5 h-full bg-emerald-400 animate-pulse" style={{ animationDuration: "500ms" }} />
@@ -550,7 +649,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
               </p>
             </div>
 
-            {/* Direct Play / Pause Circle Button */}
             <div className="flex items-center gap-1 pl-1">
               <button
                 type="button"
@@ -570,7 +668,6 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
                 )}
               </button>
 
-              {/* Dismiss button */}
               <button
                 type="button"
                 onClick={() => setIsDismissed(true)}
