@@ -109,7 +109,7 @@ export function SpotifyMusicCard({
 
     try {
       setIsSearching(true);
-      const res = await fetch(`/api/spotify/resolve?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/spotify/resolve?q=${encodeURIComponent(q)}&limit=25`);
       const data = await res.json();
       setSearchResults(data.results || []);
     } catch (err: any) {
@@ -359,7 +359,7 @@ export function SpotifyMusicCard({
 
                   {/* Search Results list */}
                   {searchResults.length > 0 && (
-                    <div className="space-y-2 rounded-2xl border border-border p-2 bg-surface/20">
+                    <div className="space-y-2 rounded-2xl border border-border p-2 bg-surface/20 max-h-96 overflow-y-auto scrollbar-thin">
                       {searchResults.map((item) => (
                         <div
                           key={item.id}

@@ -62,6 +62,10 @@ export default function MusicStudioPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [searchOffset, setSearchOffset] = useState(0);
+  const [activeSearchTerm, setActiveSearchTerm] = useState("");
   const [isResolving, setIsResolving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"search" | "link" | "upload">("search");
@@ -365,9 +369,14 @@ export default function MusicStudioPage() {
 
     try {
       setIsSearching(true);
-      const res = await fetch(`/api/spotify/resolve?q=${encodeURIComponent(q)}`);
+      setActiveSearchTerm(q);
+      const res = await fetch(
+        `/api/spotify/resolve?q=${encodeURIComponent(q)}&limit=30&offset=0`
+      );
       const data = await res.json();
       setSearchResults(data.results || []);
+      setHasMoreResults(Boolean(data.hasMore));
+      setSearchOffset(data.nextOffset || 30);
       if (!data.results || data.results.length === 0) {
         toast.info("Bu so'rov bo'yicha hech qanday musiqa topilmadi");
       }
@@ -375,6 +384,38 @@ export default function MusicStudioPage() {
       toast.error("Qidiruvda xatolik yuz berdi");
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleLoadMoreResults = async () => {
+    const q = activeSearchTerm.trim();
+    if (!q || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      const res = await fetch(
+        `/api/spotify/resolve?q=${encodeURIComponent(q)}&limit=30&offset=${searchOffset}`
+      );
+      const data = await res.json();
+      const incoming: any[] = data.results || [];
+      setSearchResults((prev) => {
+        const existingKeys = new Set(
+          prev.map((x) => `${(x.title || "").toLowerCase()}::${(x.artist || "").toLowerCase()}`)
+        );
+        const uniqueIncoming = incoming.filter(
+          (x) =>
+            !existingKeys.has(
+              `${(x.title || "").toLowerCase()}::${(x.artist || "").toLowerCase()}`
+            )
+        );
+        return [...prev, ...uniqueIncoming];
+      });
+      setHasMoreResults(Boolean(data.hasMore));
+      setSearchOffset(data.nextOffset || searchOffset + 30);
+    } catch {
+      toast.error("Qo'shimcha treklarni yuklab bo'lmadi");
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -899,7 +940,7 @@ export default function MusicStudioPage() {
                             ▶ Tugmasi orqali avval eshitib ko'ring
                           </span>
                         </div>
-                        <div className="space-y-2 rounded-2xl border border-border p-2 bg-surface/20 max-h-80 overflow-y-auto scrollbar-thin">
+                        <div className="space-y-2 rounded-2xl border border-border p-2 bg-surface/20 max-h-[480px] overflow-y-auto scrollbar-thin">
                           {searchResults.map((item) => {
                             const isPlayingThis = previewingId === item.id;
                             return (
@@ -1007,6 +1048,28 @@ export default function MusicStudioPage() {
                               </div>
                             );
                           })}
+
+                          {hasMoreResults && (
+                            <div className="pt-2 pb-1 text-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isLoadingMore}
+                                onClick={handleLoadMoreResults}
+                                className="h-9 gap-1.5 rounded-xl px-4 text-xs font-bold"
+                              >
+                                {isLoadingMore ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <span>Yuklanmoqda...</span>
+                                  </>
+                                ) : (
+                                  <span>Ko&apos;proq musiqa yuklash</span>
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

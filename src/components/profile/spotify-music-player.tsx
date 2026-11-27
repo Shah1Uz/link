@@ -62,6 +62,7 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
   const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(initialAudio);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const refreshedPreviewRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -148,12 +149,46 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
     };
     const handlePause = () => setIsPlaying(false);
     const handlePlay = () => setIsPlaying(true);
+    const handleError = () => {
+      if (
+        refreshedPreviewRef.current ||
+        !theme?.spotifyTrackTitle ||
+        isDirectAudioUrl(theme?.spotifyTrackUrl) ||
+        rawAudioUrl?.startsWith("data:") ||
+        rawAudioUrl?.startsWith("/uploads/")
+      ) {
+        return;
+      }
+      refreshedPreviewRef.current = true;
+      const artistPart =
+        theme.spotifyTrackArtist &&
+        theme.spotifyTrackArtist !== "Spotify Track" &&
+        theme.spotifyTrackArtist !== "Spotify Collection"
+          ? theme.spotifyTrackArtist
+          : "";
+      const q = `${theme.spotifyTrackTitle} ${artistPart}`.trim();
+      if (!q) return;
+      fetch(`/api/spotify/resolve?q=${encodeURIComponent(q)}&limit=5`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          const freshUrl = data?.results?.find((r: any) => Boolean(r.previewUrl))?.previewUrl;
+          if (freshUrl) {
+            const suffix =
+              trimStart > 0 || trimEnd
+                ? `#t=${trimStart}${trimEnd ? `,${trimEnd}` : ""}`
+                : "";
+            setResolvedAudioUrl(`${freshUrl}${suffix}`);
+          }
+        })
+        .catch(() => {});
+    };
 
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("play", handlePlay);
+    audio.addEventListener("error", handleError);
 
     if (theme?.spotifyMusicAutoplay) {
       audio.play().catch(() => {});
@@ -165,8 +200,19 @@ export function SpotifyMusicPlayer({ theme }: SpotifyMusicPlayerProps) {
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("error", handleError);
     };
-  }, [mounted, resolvedAudioUrl, trimStart, trimEnd, theme?.spotifyMusicAutoplay]);
+  }, [
+    mounted,
+    resolvedAudioUrl,
+    rawAudioUrl,
+    trimStart,
+    trimEnd,
+    theme?.spotifyMusicAutoplay,
+    theme?.spotifyTrackTitle,
+    theme?.spotifyTrackArtist,
+    theme?.spotifyTrackUrl,
+  ]);
 
   if (!mounted) return null;
 
